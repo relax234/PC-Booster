@@ -1,1 +1,1 @@
-{"sha256":"f98805f023855e550ec1eeccaac465a74fe87235919262665ea1679102bc18c9","size":51678270,"publishedAt":"2026-11-19T03:29:31.1477298Z","version":"0.4.3"}
+{"deltaSize":26639,"deltaSha256":"5b7a56b2d7f8eb764038ca02088a04b89ba7b5211959df99ea5f97b88f5a3bb4","deltaFromVersion":"0.4.3","publishedAt":"2026-11-19T03:36:47.5367014Z","version":"0.4.4","sha256":"bdd58c16b791e6672e9add9a6f3d23c52ba880e3ffbdd240c70e433ab1456098","size":51679489,"deltaFile":"PC-Booster-0.4.3-to-0.4.4.xdelta"}
