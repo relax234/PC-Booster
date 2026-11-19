@@ -33,6 +33,14 @@ jobs:
           $size = (Get-Item "PC-Booster.exe").Length
           Write-Host ("Self-contained EXE size: {0:N2} MB" -f ($size / 1MB))
           if ($size -ge 180MB) { throw "Unexpectedly large EXE: $size bytes" }
+      - name: Publish EXE to public PC Booster website
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add PC-Booster.exe
+          git commit -m "Publish standalone PC Booster executable"
+          git push
       - name: Publish standalone EXE release
         env:
           GH_TOKEN: ${{ github.token }}
