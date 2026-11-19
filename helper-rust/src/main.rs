@@ -1,3 +1,4 @@
+#![cfg_attr(windows, windows_subsystem = "windows")]
 #![cfg_attr(not(windows), allow(dead_code))]
 
 use axum::{
@@ -28,6 +29,7 @@ const ALLOWED_ORIGIN: &str = "https://pc-booster-ai.onrender.com";
 #[derive(Clone)]
 struct AppState {
     token_hash: Arc<Vec<u8>>,
+    pairing_token: Arc<String>,
     journal: Arc<Mutex<Journal>>,
     journal_path: Arc<PathBuf>,
 }
@@ -70,6 +72,7 @@ async fn main() {
 
     let state = AppState {
         token_hash: Arc::new(token_hash),
+        pairing_token: Arc::new(token.clone()),
         journal: Arc::new(Mutex::new(journal)),
         journal_path: Arc::new(journal_path),
     };
@@ -84,6 +87,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/health", get(health))
+        .route("/request-access", post(request_access))
         .route("/diagnostics", get(diagnostics))
         .route("/tweaks", get(tweaks))
         .route("/tweaks/apply", post(apply_tweak))
@@ -92,12 +96,12 @@ async fn main() {
         .layer(cors)
         .layer(middleware::from_fn(add_private_network_header));
 
-    println!("PC Booster Helper 0.2.0 — Rust system engine");
-    println!("Локальный адрес: http://127.0.0.1:{PORT}/");
-    println!("Код подключения (не отправляй его никому):");
-    println!("{token}");
-    println!("Доступны диагностика и ограниченный список обратимых твиков.");
-    println!("Для остановки нажми Ctrl+C.");
+    #[cfg(windows)]
+    show_notice(
+        "PC Booster Helper запущен.\n\nВернись на сайт PC Booster и нажми «Разрешить проверку ПК». Код подключения вводить не нужно.",
+        "PC Booster Helper 0.2.0",
+        windows_sys::Win32::UI::WindowsAndMessaging::MB_OK | windows_sys::Win32::UI::WindowsAndMessaging::MB_ICONINFORMATION,
+    );
 
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", PORT)).await
         .expect("Не удалось открыть локальный порт 47831");
@@ -133,6 +137,41 @@ fn authorized(headers: &HeaderMap, state: &AppState) -> bool {
     supplied_hash.as_slice().ct_eq(state.token_hash.as_slice()).into()
 }
 
+#[cfg(windows)]
+fn show_notice(message: &str, title: &str, flags: u32) -> i32 {
+    use std::os::windows::ffi::OsStrExt;
+    let message: Vec<u16> = std::ffi::OsStr::new(message).encode_wide().chain(Some(0)).collect();
+    let title: Vec<u16> = std::ffi::OsStr::new(title).encode_wide().chain(Some(0)).collect();
+    unsafe { windows_sys::Win32::UI::WindowsAndMessaging::MessageBoxW(std::ptr::null_mut(), message.as_ptr(), title.as_ptr(), flags) }
+}
+
+async fn request_access(State(state): State<AppState>, headers: HeaderMap) -> impl IntoResponse {
+    let origin = headers.get("origin").and_then(|v| v.to_str().ok()).unwrap_or("");
+    if origin != ALLOWED_ORIGIN {
+        return (StatusCode::FORBIDDEN, Json(serde_json::json!({"error":"Разрешён только официальный сайт PC Booster."})));
+    }
+    #[cfg(windows)]
+    {
+        let approved = tokio::task::spawn_blocking(|| {
+            use windows_sys::Win32::UI::WindowsAndMessaging::{IDYES, MB_DEFBUTTON2, MB_ICONQUESTION, MB_SETFOREGROUND, MB_YESNO};
+            show_notice(
+                "Сайт PC Booster запрашивает доступ к диагностике этого компьютера.\\n\\nБудут прочитаны характеристики Windows, процессор, память, диски и список работающих программ. Файлы и личные документы не открываются.\\n\\nРазрешить проверку?",
+                "Разрешить доступ к ПК — PC Booster",
+                MB_YESNO | MB_ICONQUESTION | MB_SETFOREGROUND | MB_DEFBUTTON2,
+            ) == IDYES
+        }).await.unwrap_or(false);
+        if !approved {
+            return (StatusCode::FORBIDDEN, Json(serde_json::json!({"error":"Проверка отменена пользователем."})));
+        }
+        return (StatusCode::OK, Json(serde_json::json!({"ok":true,"token":*state.pairing_token})));
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = state;
+        (StatusCode::NOT_IMPLEMENTED, Json(serde_json::json!({"error":"Helper доступен только для Windows."})))
+    }
+}
+
 async fn health() -> impl IntoResponse {
     (StatusCode::OK, Json(serde_json::json!({
         "ok": true,
@@ -152,18 +191,33 @@ async fn diagnostics(State(state): State<AppState>, headers: HeaderMap) -> impl 
     let total_memory = system.total_memory();
     let used_memory = system.used_memory();
     let disks = Disks::new_with_refreshed_list();
+    let disk_list: Vec<_> = disks.list().iter().map(|disk| serde_json::json!({
+        "name": disk.name().to_string_lossy(),
+        "mount": disk.mount_point().to_string_lossy(),
+        "totalBytes": disk.total_space(),
+        "freeBytes": disk.available_space(),
+        "usedPercent": if disk.total_space()==0 {0.0} else {((disk.total_space()-disk.available_space()) as f64 / disk.total_space() as f64 * 100.0).round()}
+    })).collect();
     let system_disk = disks.list().iter()
         .find(|disk| disk.mount_point().to_string_lossy().eq_ignore_ascii_case("C:\\"))
         .or_else(|| disks.list().iter().find(|disk| disk.mount_point().to_string_lossy().starts_with("C:")));
-
     let (total_disk, free_disk, disk_name) = system_disk
         .map(|disk| (disk.total_space(), disk.available_space(), disk.mount_point().to_string_lossy().to_string()))
         .unwrap_or((0, 0, "C:\\".to_string()));
+    let mut top_processes: Vec<_> = system.processes().values().map(|p| serde_json::json!({
+        "name": p.name().to_string_lossy(),
+        "memoryBytes": p.memory(),
+        "cpuPercent": (p.cpu_usage() * 10.0).round() / 10.0
+    })).collect();
+    top_processes.sort_by(|a,b| b["memoryBytes"].as_u64().cmp(&a["memoryBytes"].as_u64()));
+    top_processes.truncate(8);
+    let cpu_name = system.cpus().first().map(|cpu| cpu.brand().to_string()).unwrap_or_else(|| "Не определён".into());
+    let cpu_usage = system.global_cpu_info().cpu_usage();
 
     (StatusCode::OK, Json(serde_json::json!({
         "machine": std::env::var("COMPUTERNAME").unwrap_or_else(|_| "Windows PC".into()),
         "os": System::long_os_version().unwrap_or_else(|| "Windows".into()),
-        "cpu": { "logicalProcessors": system.cpus().len() },
+        "cpu": { "name": cpu_name, "logicalProcessors": system.cpus().len(), "usedPercent": (cpu_usage * 10.0).round() / 10.0 },
         "memory": {
             "totalBytes": total_memory,
             "availableBytes": total_memory.saturating_sub(used_memory),
@@ -175,7 +229,7 @@ async fn diagnostics(State(state): State<AppState>, headers: HeaderMap) -> impl 
             "freeBytes": free_disk,
             "usedPercent": if total_disk == 0 { 0.0 } else { ((total_disk - free_disk) as f64 / total_disk as f64 * 100.0).round() }
         },
-        "collectedAt": chrono_now()
+        "disks": disk_list,\n        "topProcesses": top_processes,\n        "processCount": system.processes().len(),\n        "collectedAt": chrono_now()
     })))
 }
 
