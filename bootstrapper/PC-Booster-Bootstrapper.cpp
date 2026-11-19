@@ -14,6 +14,7 @@
 #pragma comment(lib, "bcrypt.lib")
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "user32.lib")
 
 static HWND g_status = nullptr, g_progress = nullptr, g_window = nullptr;
 static const wchar_t* MANIFEST_URL = L"https://raw.githubusercontent.com/relax234/PC-Booster/main/latest.json";
