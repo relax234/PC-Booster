@@ -55,31 +55,24 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { ok: true, service: "pc-booster-ai-api", provider: "groq", aiConfigured: Boolean(process.env.GROQ_API_KEY), model: MODEL });
   }
   if (req.method === "GET" && (url.pathname === "/api/updates/latest" || url.pathname === "/api/updates/download")) {
-    const token = process.env.GITHUB_TOKEN;
-    if (!token) return send(res, 503, { error: "Сервер обновлений ещё не настроен." });
     try {
-      const headers = { authorization: `Bearer ${token}`, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28" };
-      const releasesResponse = await fetch("https://api.github.com/repos/relax234/PC-Booster/releases?per_page=30", { headers, signal: AbortSignal.timeout(20000) });
-      if (!releasesResponse.ok) throw new Error(`GitHub releases API: ${releasesResponse.status}`);
-      const releases = await releasesResponse.json();
-      const release = releases.filter(item => !item.draft && !item.prerelease && /^desktop-v\\d+\\.\\d+\\.\\d+$/.test(item.tag_name))
-        .sort((a,b) => new Date(b.published_at || b.created_at) - new Date(a.published_at || a.created_at))[0];
-      const asset = release?.assets?.find(item => item.name === "PC-Booster.exe");
-      if (!release || !asset || !/^sha256:[a-f0-9]{64}$/i.test(asset.digest || "")) throw new Error("Последний desktop-релиз или SHA256 не найден.");
-      const version = release.tag_name.replace(/^desktop-v/, "");
-      if (url.pathname === "/api/updates/latest") {
-        return send(res, 200, { version, tag: release.tag_name, sha256: asset.digest.slice(7).toLowerCase(), size: asset.size, publishedAt: release.published_at });
-      }
-      const download = await fetch(`https://api.github.com/repos/relax234/PC-Booster/releases/assets/${asset.id}`, {
-        headers: { ...headers, accept: "application/octet-stream" }, signal: AbortSignal.timeout(120000)
-      });
-      if (!download.ok || !download.body) throw new Error(`GitHub asset download: ${download.status}`);
+      const site = FRONTEND_ORIGIN.replace(/\\/+$/, "");
+      const manifestResponse = await fetch(site + "/latest.json", { signal: AbortSignal.timeout(15000), cache: "no-store" });
+      if (!manifestResponse.ok) throw new Error("Public update manifest unavailable");
+      const manifest = await manifestResponse.json();
+      if (typeof manifest.version !== "string" || !/^\\d+\\.\\d+\\.\\d+$/.test(manifest.version) ||
+          typeof manifest.sha256 !== "string" || !/^[a-f0-9]{64}$/i.test(manifest.sha256) ||
+          !Number.isSafeInteger(manifest.size) || manifest.size <= 0 || manifest.size > 200 * 1024 * 1024)
+        throw new Error("Invalid public update manifest");
+      if (url.pathname === "/api/updates/latest") return send(res, 200, manifest);
+      const download = await fetch(site + "/PC-Booster.exe", { signal: AbortSignal.timeout(120000), cache: "no-store" });
+      if (!download.ok || !download.body) throw new Error("Public update binary unavailable");
       res.writeHead(200, {
         "content-type": "application/octet-stream",
         "content-disposition": 'attachment; filename="PC-Booster.exe"',
-        "content-length": String(asset.size),
+        "content-length": String(manifest.size),
         "cache-control": "no-store",
-        "x-content-sha256": asset.digest.slice(7).toLowerCase()
+        "x-content-sha256": manifest.sha256.toLowerCase()
       });
       const { Readable } = await import("node:stream");
       Readable.fromWeb(download.body).on("error", error => { console.error("Update stream failed:", error?.name); res.destroy(error); }).pipe(res);
