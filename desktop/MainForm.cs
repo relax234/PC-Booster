@@ -60,6 +60,7 @@ public sealed class MainForm : Form
         Font = new Font("Segoe UI",9.5f);
         LoadRollback();
         BuildShell();
+        Shown += (_, _) => CheckForUpdates();
         ShowPage("Обзор");
         _ = RefreshStatsAsync();
         refreshTimer.Tick += async (_,_) => await RefreshStatsAsync();
@@ -502,6 +503,7 @@ public sealed class MainForm : Form
         updateBusy = true;
         installUpdateButton.Enabled = false;
         updateStatusLabel.Text = "Проверяю наличие новой версии...";
+        UpdateManifest? promptUpdate = null;
         try
         {
             var manifest = await http.GetFromJsonAsync<UpdateManifest>("https://pc-booster-ai-api.onrender.com/api/updates/latest");
@@ -511,6 +513,7 @@ public sealed class MainForm : Form
             {
                 availableUpdate = null;
                 updateStatusLabel.Text = "Установлена последняя версия — " + CurrentVersion + ".";
+                status.Text = "●  PC Booster обновлён";
             }
             else
             {
@@ -520,13 +523,28 @@ public sealed class MainForm : Form
                 var downloadSize = canDelta ? manifest.deltaSize : manifest.size;
                 updateStatusLabel.Text = "Доступна версия " + manifest.version + ". Размер загрузки: " + FormatBytes(downloadSize) +
                     (canDelta ? " (обновление только изменений)." : " (полный файл).");
+                status.Text = "●  Доступно обновление " + manifest.version;
                 installUpdateButton.Text = pendingUpdatePath != null && File.Exists(pendingUpdatePath)
                     ? "ОБНОВИТЬ СЕЙЧАС" : "СКАЧАТЬ И УСТАНОВИТЬ";
                 installUpdateButton.Enabled = true;
+                promptUpdate = manifest;
             }
         }
-        catch (Exception ex) { updateStatusLabel.Text = "Не удалось проверить обновления: " + ex.Message; }
+        catch (Exception ex)
+        {
+            updateStatusLabel.Text = "Не удалось проверить обновления: " + ex.Message;
+            status.Text = "●  Не удалось проверить обновления";
+        }
         finally { updateBusy = false; }
+
+        if (promptUpdate != null && !IsDisposed && !Disposing)
+        {
+            var choice = MessageBox.Show(this,
+                "Доступна новая версия PC Booster — " + promptUpdate.version +
+                ". Установить её сейчас?",
+                "Обновление PC Booster", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            if (choice == DialogResult.Yes) InstallUpdate();
+        }
     }
 
     private async void InstallUpdate()
