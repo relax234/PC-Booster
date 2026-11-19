@@ -16,7 +16,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
-OutputDir=.
+OutputDir=..
 OutputBaseFilename=PC-Booster-Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -33,8 +33,8 @@ Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 Name: "desktopicon"; Description: "Создать ярлык на рабочем столе"; GroupDescription: "Дополнительные ярлыки:"; Flags: checkedonce
 
 [Files]
-Source: "PC-Booster.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "xdelta3.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\PC-Booster.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\xdelta3.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\PC Booster"; Filename: "{app}\{#MyAppExeName}"
