@@ -3,70 +3,89 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#080d0c">
-<meta name="description" content="PC Booster AI — интеллектуальная диагностика и обслуживание Windows 10/11.">
-<title>PC BOOSTER AI — Cyber Edition</title>
+<meta name="theme-color" content="#0b120f">
+<meta name="description" content="PC Booster AI — простой помощник по Windows 11 и диагностике ПК.">
+<title>PC Booster AI</title>
 <style>
-:root{color-scheme:dark;--bg:#080d0c;--panel:#101917;--panel2:#14221d;--line:#243b31;--green:#4dff9a;--mint:#a6ffd0;--muted:#8ca69a;--white:#effff5;--cyan:#64e7d1}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% -15%,#123927 0,transparent 40%),radial-gradient(ellipse at 0% 45%,#10251d 0,transparent 35%),var(--bg);color:var(--white);font:15px/1.5 Inter,Segoe UI,system-ui,sans-serif;min-height:100vh}button,input{font:inherit}button{cursor:pointer}.shell{max-width:1440px;margin:auto;padding:24px}.top{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:28px}.brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:.11em}.logo{width:42px;height:42px;border:1px solid #4dff9a88;border-radius:13px;display:grid;place-items:center;color:var(--green);font-size:23px;box-shadow:0 0 24px #4dff9a22}.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:.22em;font-weight:600}.topright{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px}.pill{border:1px solid var(--line);background:#0c1511;border-radius:99px;padding:7px 12px}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green);margin-right:7px}.layout{display:grid;grid-template-columns: minmax(0,1.55fr) minmax(310px,.85fr);gap:20px}.hero,.card{background:linear-gradient(145deg,#122019f2,#0d1512f5);border:1px solid var(--line);border-radius:22px;box-shadow:0 18px 60px #0005}.hero{padding:30px;position:relative;overflow:hidden;min-height:390px}.hero:after{content:"";position:absolute;width:340px;height:340px;border:1px solid #4dff9a18;border-radius:50%;right:-105px;top:35px;box-shadow:0 0 0 28px #4dff9a08,0 0 0 58px #4dff9a05;pointer-events:none}.eyebrow{color:var(--green);font-size:11px;letter-spacing:.23em;font-weight:800}.hero h1{font-size:clamp(34px,5vw,62px);line-height:1.02;margin:13px 0 14px;letter-spacing:-.045em;max-width:660px}.hero h1 span{color:var(--green);text-shadow:0 0 30px #4dff9a55}.lead{color:#a6bdb0;max-width:570px;margin:0 0 26px}.hero-actions{display:flex;gap:12px;flex-wrap:wrap;position:relative;z-index:1}.primary{border:0;border-radius:12px;background:linear-gradient(110deg,#36df82,#8dffbd);color:#04130a;font-weight:900;padding:15px 21px;box-shadow:0 0 28px #4dff9a35}.secondary{border:1px solid #365846;border-radius:12px;background:#112219;color:var(--mint);padding:14px 18px;font-weight:700}.fine{font-size:11px;color:var(--muted);margin-top:20px}.side{display:grid;gap:20px}.card{padding:21px}.cardhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.card h2{font-size:15px;margin:0;letter-spacing:.03em}.sub{font-size:11px;color:var(--muted)}.helper{display:flex;gap:13px;align-items:center}.helper-icon{width:46px;height:46px;border-radius:14px;background:#173b29;border:1px solid #2d8052;display:grid;place-items:center;color:var(--green);font-size:22px}.helper strong{display:block}.helper p{margin:3px 0 0;color:var(--muted);font-size:12px}.status{font-size:10px;color:#ffd78a;border:1px solid #755b2c;background:#342817;border-radius:99px;padding:5px 9px}.metrics{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.metric{background:#101a16;border:1px solid var(--line);border-radius:17px;padding:18px}.metric-top{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}.metric b{font-size:25px;display:block;margin-top:9px}.metric small{color:var(--muted);font-size:11px}.metric .glyph{color:var(--green);font-size:17px}.lower{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:20px}.modules{display:grid;grid-template-columns:1fr 1fr;gap:10px}.module{border:1px solid #263c31;background:#0d1712;border-radius:13px;padding:13px}.module b{font-size:13px}.module p{font-size:11px;color:var(--muted);margin:4px 0 0}.chat{display:flex;gap:9px;margin-top:14px}.chat input{min-width:0;flex:1;background:#09110d;border:1px solid #294535;border-radius:11px;color:white;padding:12px;outline:none}.chat input:focus{border-color:var(--green)}.chat button{border:0;border-radius:11px;background:var(--green);color:#06140b;font-weight:900;padding:0 16px}.notice{margin-top:13px;padding:11px 13px;border-left:2px solid var(--cyan);background:#10221e;color:#a8c8bd;font-size:11px;border-radius:0 9px 9px 0}.footer{color:#637c70;text-align:center;font-size:11px;padding:26px 0 8px}.toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#14251c;border:1px solid #4dff9a66;padding:12px 18px;border-radius:12px;transition:.25s;box-shadow:0 10px 35px #0009;z-index:5}.toast.show{opacity:1;transform:translate(-50%,0)}
-@media(max-width:900px){.layout{grid-template-columns:1fr}.side{grid-template-columns:1fr 1fr}.metrics,.lower{grid-column:auto}.metrics{grid-template-columns:repeat(2,1fr)}.lower{grid-template-columns:1fr}}@media(max-width:560px){.shell{padding:14px}.top{align-items:flex-start}.topright .pill:first-child{display:none}.hero{padding:23px;min-height:0}.side{grid-template-columns:1fr}.metrics{gap:9px}.metric{padding:14px}.metric b{font-size:21px}.lower{gap:12px}.modules{grid-template-columns:1fr 1fr}.brand{font-size:13px}}
+:root{color-scheme:dark;--bg:#0b120f;--panel:#121d17;--panel2:#17251d;--line:#293d30;--green:#69e99b;--mint:#b8f6ce;--text:#f0f8f1;--muted:#9aafa0;--danger:#ff9d9d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,Segoe UI,Arial,sans-serif;min-height:100vh}button,input{font:inherit}button{cursor:pointer}.wrap{width:min(1120px,100% - 36px);margin:0 auto;padding:22px 0 28px}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}.brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:18px;letter-spacing:.02em}.logo{width:38px;height:38px;border-radius:12px;background:#1b3525;border:1px solid #3f8056;color:var(--green);display:grid;place-items:center;font-size:22px}.brand small{display:block;font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.03em}.status{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}.dot{width:8px;height:8px;border-radius:50%;background:#d6ad61}.dot.online{background:var(--green)}
+.intro{margin:4px 0 18px}.intro h1{font-size:clamp(25px,4vw,36px);line-height:1.15;margin:0 0 7px;letter-spacing:-.035em}.intro p{margin:0;color:var(--muted);font-size:14px}
+.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,.8fr);gap:16px;align-items:start}.panel{background:var(--panel);border:1px solid var(--line);border-radius:17px;overflow:hidden}.chat-panel{display:flex;flex-direction:column;min-height:620px}.panel-head{padding:17px 19px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}.panel-head h2{margin:0;font-size:16px}.tag{font-size:11px;color:var(--green);background:#1a3223;border:1px solid #315a3d;border-radius:99px;padding:5px 9px;white-space:nowrap}
+.messages{padding:20px;display:flex;flex-direction:column;gap:14px;flex:1;min-height:350px;max-height:560px;overflow-y:auto;scroll-behavior:smooth}.welcome{background:#17251d;border:1px solid #304936;border-radius:14px;padding:15px;color:#dcebe0;max-width:92%}.welcome strong{display:block;margin-bottom:5px;color:var(--mint)}.welcome p{margin:0;color:#b4c6b8;font-size:14px}.bubble{max-width:88%;padding:12px 14px;border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}.bubble.user{align-self:flex-end;background:#245638;color:#f1fff4;border-bottom-right-radius:5px}.bubble.assistant{align-self:flex-start;background:#1a2820;border:1px solid #2b4032;border-bottom-left-radius:5px}.bubble.error{border-color:#714343;color:#ffd0d0}.typing{color:var(--muted);font-size:13px;padding:0 20px 12px}
+.composer{padding:14px;border-top:1px solid var(--line);background:#101a14}.input-row{display:flex;gap:9px;align-items:flex-end}.input-row textarea{flex:1;min-width:0;min-height:48px;max-height:130px;resize:vertical;border:1px solid #354c3b;background:#0b130e;color:var(--text);border-radius:12px;padding:12px 13px;outline:none}.input-row textarea:focus{border-color:var(--green)}.send{height:48px;padding:0 18px;border:0;border-radius:12px;background:var(--green);color:#092012;font-weight:800}.send:disabled{opacity:.55;cursor:wait}.hint{font-size:11px;color:#829888;margin:8px 2px 0}
+.side{display:grid;gap:16px}.side .panel{padding:17px}.side h2{font-size:15px;margin:0 0 13px}.helper-row{display:flex;align-items:center;gap:11px}.helper-icon{width:40px;height:40px;border-radius:12px;background:#1c3525;color:var(--green);display:grid;place-items:center;font-size:20px}.helper-row strong{font-size:14px}.helper-row small{display:block;color:var(--muted);font-size:11px}.helper-state{font-size:11px;color:#e3c17b;margin-top:12px}.helper-btn{margin-top:13px;width:100%;padding:10px;border:1px solid #42674b;background:#1a3021;color:var(--mint);border-radius:10px;font-weight:700}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:9px}.metric{padding:12px;border:1px solid var(--line);background:#0f1913;border-radius:12px;min-width:0}.metric span{display:block;color:var(--muted);font-size:11px}.metric b{display:block;margin-top:5px;font-size:17px;overflow-wrap:anywhere}.metric small{display:block;color:#829888;font-size:10px;margin-top:2px}.quick{display:flex;flex-direction:column;gap:8px}.quick button{text-align:left;padding:10px 11px;border:1px solid var(--line);background:#101a14;color:#d5e5d9;border-radius:10px;font-size:12px}.quick button:hover,.helper-btn:hover{border-color:var(--green)}
+footer{text-align:center;color:#718477;font-size:11px;padding-top:19px}
+@media(max-width:780px){.grid{grid-template-columns:1fr}.chat-panel{min-height:570px}.messages{max-height:460px}.side{grid-template-columns:1fr 1fr}.side .panel:first-child{grid-column:1/-1}}
+@media(max-width:520px){.wrap{width:calc(100% - 22px);padding-top:14px}header{margin-bottom:18px}.brand{font-size:16px}.status{font-size:10px}.intro h1{font-size:27px}.side{grid-template-columns:1fr}.side .panel:first-child{grid-column:auto}.chat-panel{min-height:540px}.messages{padding:14px;min-height:310px}.bubble{max-width:96%}.panel-head{padding:14px}.composer{padding:11px}.send{padding:0 14px}}
 </style>
 </head>
 <body>
-<div class="shell">
-<header class="top">
- <div class="brand"><div class="logo">⌁</div><div>PC BOOSTER<small>ARTIFICIAL INTELLIGENCE / CYBER EDITION</small></div></div>
- <div class="topright"><span class="pill"><i class="dot"></i>WEB INTERFACE ONLINE</span><span class="pill">v0.1.0</span></div>
+<div class="wrap">
+<header>
+ <div class="brand"><div class="logo">⌁</div><div>PC Booster AI<small>Простой помощник для Windows</small></div></div>
+ <div class="status"><i class="dot" id="apiDot"></i><span id="apiStatus">Подключаем ИИ…</span></div>
 </header>
-<main class="layout">
-<section class="hero">
- <div class="eyebrow">YOUR SYSTEM. YOUR CONTROL.</div>
- <h1>ВЕРНИ СВОЕМУ ПК<br><span>МАКСИМАЛЬНУЮ</span><br>ФОРМУ.</h1>
- <p class="lead">Интеллектуальная диагностика и обслуживание Windows 10/11. Один центр управления производительностью, чистотой и состоянием системы.</p>
- <div class="hero-actions"><button class="primary" id="scan">⌁ &nbsp; НАЧАТЬ ДИАГНОСТИКУ</button><button class="secondary" id="helperBtn">ПОДКЛЮЧИТЬ WINDOWS HELPER ↗</button></div>
- <div class="fine">Безопасность прежде всего · Изменения только с твоего разрешения</div>
+<section class="intro">
+ <h1>Чем помочь с компьютером?</h1>
+ <p>Задавай вопросы обычным языком. Помогу разобраться с Windows, ошибками и производительностью.</p>
 </section>
-<aside class="side">
- <section class="card">
-  <div class="cardhead"><h2>СОСТОЯНИЕ ПОМОЩНИКА</h2><span class="status">НЕ ПОДКЛЮЧЁН</span></div>
-  <div class="helper"><div class="helper-icon">⌘</div><div><strong>PC Booster Helper</strong><p>Локальный агент Windows</p></div></div>
-  <div class="notice">Для чтения реальных показателей ПК и выполнения системных задач потребуется установить Windows Helper. Сайт пока работает в демонстрационном режиме.</div>
+<main class="grid">
+ <section class="panel chat-panel">
+  <div class="panel-head"><h2>Чат с AI-помощником</h2><span class="tag">PC BOOSTER AI</span></div>
+  <div class="messages" id="messages" aria-live="polite">
+   <div class="welcome"><strong>Привет! Я PC Booster AI 👋</strong><p>Могу подсказать, как ускорить Windows, освободить место, разобраться с ошибками и безопасно настроить компьютер. Напиши, что случилось.</p></div>
+  </div>
+  <div class="typing" id="typing" hidden>ИИ готовит ответ…</div>
+  <form class="composer" id="chatForm">
+   <div class="input-row"><textarea id="messageInput" rows="1" maxlength="2000" placeholder="Напиши сообщение… (Enter — отправить, Shift+Enter — новая строка)" required></textarea><button class="send" id="sendBtn" type="submit">Отправить</button></div>
+   <div class="hint">Не отправляй пароли и личные данные. ИИ может ошибаться — важные действия сначала проверяй.</div>
+  </form>
  </section>
- <section class="card">
-  <div class="cardhead"><h2>AI ASSISTANT</h2><span class="sub">ПРЕДВАРИТЕЛЬНЫЙ ИНТЕРФЕЙС</span></div>
-  <div style="color:#b8cec2;font-size:13px">Привет! Я помогу разобраться с состоянием компьютера и подобрать безопасные действия.</div>
-  <div class="chat"><input id="prompt" placeholder="Напиши, что нужно сделать..." maxlength="240"><button id="send">➤</button></div>
-  <div class="sub" id="aiStatus" style="margin-top:9px">Проверяем подключение AI-сервера…</div><div id="chatResponse" class="notice" style="display:none;white-space:pre-wrap"></div>
- </section>
-</aside>
-<section class="metrics">
- <div class="metric"><div class="metric-top"><span>ПРОЦЕССОР</span><span class="glyph">◈</span></div><b id="cpuValue">—</b><small id="cpuSub">Ожидание Windows Helper</small></div>
- <div class="metric"><div class="metric-top"><span>ОПЕРАТИВНАЯ ПАМЯТЬ</span><span class="glyph">▤</span></div><b id="ramValue">—</b><small id="ramSub">Ожидание Windows Helper</small></div>
- <div class="metric"><div class="metric-top"><span>НАКОПИТЕЛЬ</span><span class="glyph">▱</span></div><b id="diskValue">—</b><small id="diskSub">Ожидание Windows Helper</small></div>
- <div class="metric"><div class="metric-top"><span>ВИДЕОКАРТА</span><span class="glyph">◇</span></div><b id="gpuValue">—</b><small id="gpuSub">Будет доступно в следующей версии Helper</small></div>
-</section>
-<section class="lower">
- <div class="card"><div class="cardhead"><h2>МОДУЛИ ОПТИМИЗАЦИИ</h2><span class="sub">ПЛАН РАЗРАБОТКИ</span></div><div class="modules">
-  <div class="module"><b>⌁ Очистка системы</b><p>Временные файлы и кэш</p></div><div class="module"><b>◷ Автозагрузка</b><p>Анализ запуска Windows</p></div>
-  <div class="module"><b>◇ Игровой режим</b><p>Настройки для игр</p></div><div class="module"><b>⛨ Защита Windows</b><p>Проверка важных компонентов</p></div>
- </div></div>
- <div class="card"><div class="cardhead"><h2>ЖУРНАЛ СИСТЕМЫ</h2><span class="sub">LIVE FEED</span></div><div id="log" style="font:12px/2 ui-monospace,Consolas,monospace;color:#9db8aa"><div>[BOOT] Интерфейс PC Booster загружен</div><div>[INFO] Ожидание подключения локального агента</div><div>[SAFE] Системные изменения не выполняются</div></div></div>
-</section>
+ <aside class="side">
+  <section class="panel">
+   <h2>Подключение к ПК</h2>
+   <div class="helper-row"><div class="helper-icon">⌘</div><div><strong>Windows Helper</strong><small>Чтение характеристик компьютера</small></div></div>
+   <div class="helper-state" id="helperStatus">Не подключён · пока доступны советы ИИ</div>
+   <button class="helper-btn" id="helperBtn" type="button">Подключить Helper</button>
+  </section>
+  <section class="panel">
+   <h2>Характеристики ПК</h2>
+   <div class="metrics">
+    <div class="metric"><span>Процессор</span><b id="cpuValue">—</b><small id="cpuSub">Нет данных</small></div>
+    <div class="metric"><span>ОЗУ</span><b id="ramValue">—</b><small id="ramSub">Нет данных</small></div>
+    <div class="metric"><span>Диск C:</span><b id="diskValue">—</b><small id="diskSub">Нет данных</small></div>
+    <div class="metric"><span>Windows</span><b id="osValue">—</b><small id="osSub">Нет данных</small></div>
+   </div>
+  </section>
+  <section class="panel">
+   <h2>Быстрые вопросы</h2>
+   <div class="quick">
+    <button type="button">Как ускорить Windows 11 безопасно?</button>
+    <button type="button">Как освободить место на диске C:?</button>
+    <button type="button">Почему компьютер тормозит?</button>
+   </div>
+  </section>
+ </aside>
 </main>
-<footer class="footer">PC BOOSTER AI · CYBER EDITION · НЕОФИЦИАЛЬНЫЙ ИНСТРУМЕНТ ОБСЛУЖИВАНИЯ WINDOWS</footer>
-</div><div class="toast" id="toast"></div>
+<footer>PC Booster AI · Безопасные рекомендации для Windows 10/11</footer>
+</div>
 <script>
 const API_URL='https://pc-booster-ai-api.onrender.com';
-const toast=document.getElementById('toast');let timer;
-function notify(message){toast.textContent=message;toast.classList.add('show');clearTimeout(timer);timer=setTimeout(()=>toast.classList.remove('show'),3500)}
-async function checkAI(){const status=document.getElementById('aiStatus');try{const r=await fetch(API_URL+'/health');const d=await r.json();status.textContent=d.aiConfigured?'Бесплатный Groq AI подключён. Можешь задать вопрос.':'Сервер работает; добавь бесплатный ключ Groq на сервере.';}catch{status.textContent='Бесплатный AI-сервер запускается или временно недоступен.';}}
+const messagesEl=document.getElementById('messages');
+const input=document.getElementById('messageInput');
+const sendBtn=document.getElementById('sendBtn');
+const typing=document.getElementById('typing');
+const history=[];
 let helperToken=null;
-async function connectHelper(){const token=prompt('Вставь одноразовый код, который показал PC Booster Helper на твоём компьютере:');if(!token)return;try{const r=await fetch('http://127.0.0.1:47831/diagnostics',{headers:{'X-PC-Booster-Token':token.trim()}});const d=await r.json();if(!r.ok)throw new Error(d.error||'Не удалось подключиться');helperToken=token.trim();document.getElementById('cpuValue').textContent=d.cpu.logicalProcessors+' потоков';document.getElementById('cpuSub').textContent=d.os;document.getElementById('ramValue').textContent=d.memory.usedPercent+'%';document.getElementById('ramSub').textContent=(d.memory.availableBytes/1073741824).toFixed(1)+' ГБ свободно';document.getElementById('diskValue').textContent=d.systemDrive.usedPercent+'%';document.getElementById('diskSub').textContent=(d.systemDrive.freeBytes/1073741824).toFixed(1)+' ГБ свободно на '+d.systemDrive.name;document.getElementById('gpuValue').textContent='Н/Д';document.querySelector('.status').textContent='ПОДКЛЮЧЁН';document.querySelector('.status').style.color='#a6ffd0';document.querySelector('.status').style.borderColor='#2d8052';notify('Windows Helper подключён. Получены диагностические данные.');}catch(e){helperToken=null;notify(e.message||'Подключение не удалось. Проверь, запущен ли Helper.');}}
-document.getElementById('scan').addEventListener('click',()=>helperToken?connectHelper():notify('Нажми «Подключить Windows Helper» и введи код из приложения.'));
+function addBubble(text,role,extra=''){const node=document.createElement('div');node.className='bubble '+role+(extra?' '+extra:'');node.textContent=text;messagesEl.appendChild(node);messagesEl.scrollTop=messagesEl.scrollHeight;return node;}
+async function checkAI(){const status=document.getElementById('apiStatus'),dot=document.getElementById('apiDot');try{const r=await fetch(API_URL+'/health',{cache:'no-store'});const d=await r.json();if(!r.ok||!d.ok)throw new Error();if(d.aiConfigured){status.textContent='ИИ подключён';dot.classList.add('online');}else{status.textContent='ИИ не настроен';}}catch{status.textContent='Сервер временно недоступен';}}
+async function sendMessage(text){const message=(text||input.value).trim();if(!message||sendBtn.disabled)return;addBubble(message,'user');history.push({role:'user',content:message});input.value='';sendBtn.disabled=true;sendBtn.textContent='…';typing.hidden=false;messagesEl.scrollTop=messagesEl.scrollHeight;try{const r=await fetch(API_URL+'/api/assistant',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message,history:history.slice(-12)})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Не удалось получить ответ.');const answer=String(data.answer||'').trim();if(!answer)throw new Error('ИИ вернул пустой ответ.');history.push({role:'assistant',content:answer});addBubble(answer,'assistant');}catch(e){history.pop();addBubble(e.message||'Ошибка соединения с ИИ. Попробуй ещё раз.','assistant','error');}finally{typing.hidden=true;sendBtn.disabled=false;sendBtn.textContent='Отправить';input.focus();}}
+document.getElementById('chatForm').addEventListener('submit',e=>{e.preventDefault();sendMessage();});
+input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
+document.querySelectorAll('.quick button').forEach(b=>b.addEventListener('click',()=>sendMessage(b.textContent)));
+async function connectHelper(){const token=window.prompt('Введи одноразовый код, который показал PC Booster Helper:');if(!token)return;const status=document.getElementById('helperStatus');status.textContent='Подключаемся…';try{const r=await fetch('http://127.0.0.1:47831/diagnostics',{headers:{'X-PC-Booster-Token':token.trim()}});const d=await r.json();if(!r.ok)throw new Error(d.error||'Не удалось подключиться');helperToken=token.trim();document.getElementById('cpuValue').textContent=d.cpu.logicalProcessors+' потоков';document.getElementById('cpuSub').textContent='Логических процессоров';document.getElementById('ramValue').textContent=d.memory.usedPercent+'%';document.getElementById('ramSub').textContent=(d.memory.availableBytes/1073741824).toFixed(1)+' ГБ свободно';document.getElementById('diskValue').textContent=d.systemDrive.usedPercent+'% занято';document.getElementById('diskSub').textContent=(d.systemDrive.freeBytes/1073741824).toFixed(1)+' ГБ свободно';document.getElementById('osValue').textContent='Windows';document.getElementById('osSub').textContent=d.os;status.textContent='Подключён · данные получены';document.getElementById('helperBtn').textContent='Обновить данные';}catch(e){helperToken=null;status.textContent=e.message||'Helper не найден. Запусти приложение на этом ПК.';}}
 document.getElementById('helperBtn').addEventListener('click',connectHelper);
-async function send(){const input=document.getElementById('prompt'),button=document.getElementById('send'),output=document.getElementById('chatResponse');const message=input.value.trim();if(!message)return;button.disabled=true;button.textContent='…';output.style.display='block';output.textContent='PC Booster AI думает…';try{const r=await fetch(API_URL+'/api/assistant',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Ошибка AI-сервера');output.textContent=data.answer;input.value='';}catch(e){output.textContent=e.message||'Не удалось связаться с AI-сервером.';}finally{button.disabled=false;button.textContent='➤';}}
-document.getElementById('send').addEventListener('click',send);
-document.getElementById('prompt').addEventListener('keydown',e=>{if(e.key==='Enter')send()});
 checkAI();
 </script>
 </body></html>
