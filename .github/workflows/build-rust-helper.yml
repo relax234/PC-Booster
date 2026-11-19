@@ -23,6 +23,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: helper-rust
+      - name: Run Rust allowlist tests
+        working-directory: helper-rust
+        run: cargo test --target x86_64-pc-windows-msvc
       - name: Build release executable
         working-directory: helper-rust
         run: cargo build --release --target x86_64-pc-windows-msvc
