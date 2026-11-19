@@ -88,6 +88,7 @@ jobs:
             }
             elseif ($deltaFrom -match '^\d+\.\d+\.\d+$' -and $deltaFrom -ne $version) {
               $deltaFile = "PC-Booster-$deltaFrom-to-$version.xdelta"
+              & ".\xdelta3.exe" -e -s $oldExe "PC-Booster.exe" $deltaFile
               if ($LASTEXITCODE -ne 0) { throw "Could not create delta patch" }
               $deltaSize = (Get-Item $deltaFile).Length
               if ($deltaSize -ge $size) {
