@@ -34,6 +34,7 @@ public sealed class MainForm : Form
     private Button installUpdateButton = new();
     private UpdateManifest? availableUpdate;
     private string? pendingUpdatePath;
+    private long pendingUpdateTransferSize;
     private bool updateBusy;
     private readonly Dictionary<string,List<RegValue>> rollback = new();
     private (ulong idle, ulong kernel, ulong user)? previousCpuSample;
@@ -577,6 +578,7 @@ public sealed class MainForm : Form
                         manifest.deltaSha256.Length == 64 &&
                         File.Exists(Path.Combine(AppContext.BaseDirectory, "xdelta3.exe"));
 
+                    long transferSize = 0;
                     var ready = false;
                     if (canDelta)
                     {
@@ -589,6 +591,7 @@ public sealed class MainForm : Form
                                 "https://pc-booster-ai-api.onrender.com/api/updates/download?from=" +
                                 Uri.EscapeDataString(CurrentVersion),
                                 patchPath, manifest.deltaSize, progress, cancelSource.Token);
+                            transferSize += manifest.deltaSize;
 
                             var patchHash = await ComputeFileSha256Async(patchPath, cancelSource.Token);
                             if (!string.Equals(patchHash, manifest.deltaSha256, StringComparison.OrdinalIgnoreCase))
@@ -648,6 +651,7 @@ public sealed class MainForm : Form
                         await DownloadUpdateFileAsync(
                             "https://pc-booster-ai-api.onrender.com/api/updates/download",
                             newExePath, manifest.size, progress, cancelSource.Token);
+                        transferSize += manifest.size;
 
                         var fullHash = await ComputeFileSha256Async(newExePath, cancelSource.Token);
                         if (!string.Equals(fullHash, manifest.sha256, StringComparison.OrdinalIgnoreCase))
@@ -656,6 +660,7 @@ public sealed class MainForm : Form
 
                     readyPath = newExePath;
                     pendingUpdatePath = newExePath;
+                    pendingUpdateTransferSize = transferSize;
                     retainDownload = true;
                     progress.SetCompleted();
                 }
@@ -672,17 +677,14 @@ public sealed class MainForm : Form
             else
             {
                 readyPath = pendingUpdatePath;
+                transferSize = pendingUpdateTransferSize;
                 retainDownload = true;
             }
-
-            var downloadSize = manifest.deltaFromVersion == CurrentVersion &&
-                manifest.deltaSize > 0 && File.Exists(Path.Combine(AppContext.BaseDirectory, "xdelta3.exe"))
-                ? manifest.deltaSize : manifest.size;
 
             var choice = MessageBox.Show(
                 this,
                 "Обновление PC Booster " + manifest.version + " скачано и проверено.\n\n" +
-                "Размер загрузки: " + FormatBytes(downloadSize) + "\n\n" +
+                "Всего скачано: " + FormatBytes(transferSize) + "\n\n" +
                 "Обновить приложение и перезапустить его сейчас? Текущая программа закроется только после твоего подтверждения.",
                 "PC Booster — обновление готово",
                 MessageBoxButtons.YesNo,
