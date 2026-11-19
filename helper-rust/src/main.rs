@@ -2,8 +2,9 @@
 
 use axum::{
     extract::{State, Json},
-    http::{HeaderMap, StatusCode},
-    response::IntoResponse,
+    http::{HeaderMap, StatusCode, Request, HeaderValue},
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
     routing::{get, post},
     Router,
 };
@@ -88,7 +89,8 @@ async fn main() {
         .route("/tweaks/apply", post(apply_tweak))
         .route("/tweaks/rollback", post(rollback_tweak))
         .with_state(state)
-        .layer(cors);
+        .layer(cors)
+        .layer(middleware::from_fn(add_private_network_header));
 
     println!("PC Booster Helper 0.2.0 — Rust system engine");
     println!("Локальный адрес: http://127.0.0.1:{PORT}/");
@@ -102,6 +104,15 @@ async fn main() {
     if let Err(error) = axum::serve(listener, app).await {
         eprintln!("Helper stopped: {error}");
     }
+}
+
+async fn add_private_network_header(request: Request<axum::body::Body>, next: Next) -> Response {
+    let mut response = next.run(request).await;
+    response.headers_mut().insert(
+        "access-control-allow-private-network",
+        HeaderValue::from_static("true"),
+    );
+    response
 }
 
 fn data_path() -> PathBuf {
@@ -258,9 +269,9 @@ fn restore_value(value: &OriginalValue) -> Result<(), String> {
         }
     } else {
         match value.kind.as_str() {
-            "dword" => key.set_value(&value.name, &value.dword.ok_or("Нет сохранённого DWORD")?)
+            "dword" => key.set_value(&value.name, &value.dword.ok_or_else(|| "Нет сохранённого DWORD".to_string())?)
                 .map_err(|e| format!("Не удалось восстановить DWORD: {e}")),
-            "string" => key.set_value(&value.name, &value.string.as_ref().ok_or("Нет сохранённой строки")?)
+            "string" => key.set_value(&value.name, &value.string.as_ref().ok_or_else(|| "Нет сохранённой строки".to_string())?)
                 .map_err(|e| format!("Не удалось восстановить строку: {e}")),
             _ => Err("Неизвестный тип сохранённого параметра".into()),
         }
@@ -269,9 +280,8 @@ fn restore_value(value: &OriginalValue) -> Result<(), String> {
 
 fn save_journal(state: &AppState, journal: &Journal) -> Result<(), String> {
     let bytes = serde_json::to_vec_pretty(journal).map_err(|e| e.to_string())?;
-    let temp = state.journal_path.with_extension("tmp");
-    fs::write(&temp, bytes).map_err(|e| format!("Не удалось сохранить журнал: {e}"))?;
-    fs::rename(&temp, state.journal_path.as_path()).map_err(|e| format!("Не удалось обновить журнал: {e}"))
+    fs::write(state.journal_path.as_path(), bytes)
+        .map_err(|e| format!("Не удалось сохранить журнал: {e}"))
 }
 
 async fn apply_tweak(State(state): State<AppState>, headers: HeaderMap, Json(body): Json<ApplyRequest>) -> impl IntoResponse {
