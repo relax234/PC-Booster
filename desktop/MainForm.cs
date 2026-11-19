@@ -133,20 +133,31 @@ public sealed class MainForm : Form
         aicard.Controls.Add(row); aicard.Controls.Add(chatLog); ai.Controls.Add(aicard); pages["AI-помощник"]=ai;
 
         var settings=MakePage();
-        var setcard=Card("Внешний вид","Выбери оформление приложения.");
-        var theme=ActionButton("Переключить светлую / тёмную тему",()=>{light=!light;ApplyTheme();});
-        setcard.Controls.Add(theme);
-        var about=new Label { Dock=DockStyle.Top, Height=70, Text="PC Booster для Windows 10/11\nДиагностика и оптимизация выполняются на этом компьютере.", Padding=new Padding(4,14,4,4) };
-        setcard.Controls.Add(about); settings.Controls.Add(setcard);
-        var updateCard=Card("Обновление приложения","Проверяй новые версии прямо здесь. Программа сама скачает обновление, заменит текущий EXE и перезапустится — установщик не нужен.");
-        updateStatusLabel=new Label { Dock=DockStyle.Top, Height=48, Padding=new Padding(4,12,4,4), Text="Текущая версия: " + CurrentVersion };
-        installUpdateButton=ActionButton("Скачать и установить обновление",InstallUpdate);
+        var updateCard=Card("Обновление приложения","Проверяй новые версии PC Booster прямо здесь. Если обновление найдено, программа проверит файл, скачает его и перезапустится.");
+        updateCard.Padding=new Padding(22);
+        var updateVersionLabel=new Label { Dock=DockStyle.Top, Height=30, Text="УСТАНОВЛЕННАЯ ВЕРСИЯ  ·  "+CurrentVersion, Font=new Font("Segoe UI",9,FontStyle.Bold), Padding=new Padding(4,6,4,4) };
+        updateStatusLabel=new Label { Dock=DockStyle.Top, Height=54, Padding=new Padding(4,10,4,4), Text="Нажми «Проверить обновления», чтобы проверить наличие новой версии.", AutoEllipsis=true };
+        var updateActions=new FlowLayoutPanel { Dock=DockStyle.Top, Height=58, FlowDirection=FlowDirection.LeftToRight, WrapContents=true, Padding=new Padding(0,6,0,0) };
+        var checkUpdateButton=ActionButton("ПРОВЕРИТЬ ОБНОВЛЕНИЯ",()=>CheckForUpdates());
+        checkUpdateButton.Height=42;
+        installUpdateButton=ActionButton("СКАЧАТЬ И УСТАНОВИТЬ",InstallUpdate);
+        installUpdateButton.Height=42;
         installUpdateButton.Enabled=false;
-        var checkUpdateButton=ActionButton("Проверить обновления",()=>CheckForUpdates());
+        updateActions.Controls.Add(checkUpdateButton);
+        updateActions.Controls.Add(installUpdateButton);
+        updateCard.Controls.Add(updateActions);
         updateCard.Controls.Add(updateStatusLabel);
-        updateCard.Controls.Add(installUpdateButton);
-        updateCard.Controls.Add(checkUpdateButton);
+        updateCard.Controls.Add(updateVersionLabel);
         settings.Controls.Add(updateCard);
+
+        var setcard=Card("Внешний вид","Настрой оформление приложения под себя. Изменение применяется сразу, без перезапуска.");
+        setcard.Padding=new Padding(22);
+        var themeInfo=new Label { Dock=DockStyle.Top, Height=38, Text="Тема приложения", Padding=new Padding(4,10,4,4), Font=new Font("Segoe UI",10,FontStyle.Bold) };
+        var theme=ActionButton("ПЕРЕКЛЮЧИТЬ СВЕТЛУЮ / ТЁМНУЮ ТЕМУ",()=>{light=!light;ApplyTheme();});
+        theme.Height=42;
+        setcard.Controls.Add(theme);
+        setcard.Controls.Add(themeInfo);
+        settings.Controls.Add(setcard);
         pages["Настройки"]=settings;
 
         foreach(var pair in pages.Where(p=>p.Key!="__body")) { var c=pair.Value; c.Dock=DockStyle.Fill; c.Visible=false; body.Controls.Add(c); }
