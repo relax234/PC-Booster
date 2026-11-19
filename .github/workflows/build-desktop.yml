@@ -55,12 +55,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $tag = "desktop-v0.4.0"
+          [xml]$project = Get-Content "desktop/PCBooster.Desktop.csproj"
+          $version = $project.Project.PropertyGroup.Version
+          $tag = "desktop-v$version"
+          $title = "PC Booster Desktop $version"
+          $notes = "Автономная версия для Windows 10/11 x64. .NET уже включён в EXE — отдельно устанавливать ничего не нужно. Встроенная проверка обновлений. Один файл: PC-Booster.exe."
           gh release view $tag --repo ${{ github.repository }} *> $null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $tag --repo ${{ github.repository }} --title "PC Booster Desktop 0.4.0" --notes "Автономная версия для Windows x64. Не требует предварительной установки .NET. Один файл: PC-Booster.exe."
+            gh release create $tag --repo ${{ github.repository }} --title $title --notes $notes
             if ($LASTEXITCODE -ne 0) { throw "Could not create GitHub release" }
           }
           gh release upload $tag "PC-Booster.exe" --repo ${{ github.repository }} --clobber
           if ($LASTEXITCODE -ne 0) { throw "Could not upload EXE" }
-          gh release edit $tag --repo ${{ github.repository }} --title "PC Booster Desktop 0.4.0" --notes "Автономная версия для Windows 10/11 x64. .NET уже включён в EXE — отдельно устанавливать ничего не нужно. Загрузка одним файлом: PC-Booster.exe."
+          gh release edit $tag --repo ${{ github.repository }} --title $title --notes $notes
