@@ -71,9 +71,16 @@ const server = http.createServer(async (req, res) => {
         typeof manifest.deltaFile === "string" && /^PC-Booster-[0-9.]+-to-[0-9.]+\.xdelta$/.test(manifest.deltaFile) &&
         typeof manifest.deltaSha256 === "string" && /^[a-f0-9]{64}$/i.test(manifest.deltaSha256) &&
         Number.isSafeInteger(manifest.deltaSize) && manifest.deltaSize > 0 && manifest.deltaSize < manifest.size;
-      const fileName = useDelta ? manifest.deltaFile : "PC-Booster.exe";
-      const fileSize = useDelta ? manifest.deltaSize : manifest.size;
-      const fileHash = useDelta ? manifest.deltaSha256 : manifest.sha256;
+      if (!useDelta) {
+        return send(res, 409, {
+          error: "Для установленной версии нет совместимого частичного обновления. Полная версия не отправляется.",
+          currentVersion: requestedBase || null,
+          latestVersion: manifest.version
+        });
+      }
+      const fileName = manifest.deltaFile;
+      const fileSize = manifest.deltaSize;
+      const fileHash = manifest.deltaSha256;
       const download = await fetch(site + "/" + fileName, { signal: AbortSignal.timeout(120000), cache: "no-store" });
       if (!download.ok || !download.body) throw new Error("Public update binary unavailable");
       res.writeHead(200, {
