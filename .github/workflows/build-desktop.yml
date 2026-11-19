@@ -14,7 +14,7 @@ permissions:
   contents: write
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v5
       - name: Save previous release for delta generation
