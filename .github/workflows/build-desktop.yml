@@ -94,7 +94,7 @@ jobs:
         run: |
           choco install innosetup --no-progress -y
           if ($LASTEXITCODE -ne 0) { throw "Could not install Inno Setup compiler" }
-          $iscc = "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe"
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (!(Test-Path $iscc)) { $iscc = (Get-Command ISCC.exe -ErrorAction Stop).Source }
           & $iscc "/DAppVersion=$((([xml](Get-Content desktop/PCBooster.Desktop.csproj)).Project.PropertyGroup.Version))" "installer/PC-Booster.iss"
           if ($LASTEXITCODE -ne 0 -or !(Test-Path "PC-Booster-Setup.exe")) { throw "Windows installer build failed" }
