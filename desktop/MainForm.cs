@@ -22,6 +22,10 @@ public sealed class MainForm : Form
     private bool processesBusy;
     private readonly HttpClient http = new() { Timeout = TimeSpan.FromMinutes(3) };
     private bool light;
+    private bool animationsEnabled = true;
+    private Button? animationToggleButton;
+    private readonly Dictionary<Button, System.Windows.Forms.Timer> hoverTimers = new();
+    private static readonly string appearancePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PCBooster", "appearance.json");
     private string currentPage = "Обзор";
     private Label cpuValue = new(), ramValue = new(), diskValue = new(), osValue = new();
     private Label scanSummary = new();
@@ -59,6 +63,7 @@ public sealed class MainForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         Font = new Font("Segoe UI",9.5f);
         LoadRollback();
+        LoadAppearance();
         BuildShell();
         Shown += (_, _) => CheckForUpdates();
         ShowPage("Обзор");
@@ -99,7 +104,7 @@ public sealed class MainForm : Form
             var name=item.Name;
             var b=new Button { Text=item.Caption, Width=222, Height=56, TextAlign=ContentAlignment.MiddleLeft, FlatStyle=FlatStyle.Flat, Tag=name, Margin=new Padding(0,0,0,8), Padding=new Padding(16,0,8,0), Font=new Font("Segoe UI",10.5f,FontStyle.Bold), Cursor=Cursors.Hand };
             b.FlatAppearance.BorderSize=0; b.FlatAppearance.MouseOverBackColor=Color.FromArgb(20,62,99);
-            b.Click+=(_,_)=>ShowPage(name); navigationButtons.Add(b); nav.Controls.Add(b);
+            b.Click+=(_,_)=>ShowPage(name); AttachButtonEffects(b); navigationButtons.Add(b); nav.Controls.Add(b);
         }
         var top=new Panel { Dock=DockStyle.Top, Height=76 };
         pageTitle.Dock=DockStyle.Left; pageTitle.AutoSize=true; pageTitle.Font=new Font("Segoe UI",25,FontStyle.Bold);
@@ -185,14 +190,22 @@ public sealed class MainForm : Form
         updateCard.Controls.Add(updateVersionLabel);
         settings.Controls.Add(updateCard);
 
-        var setcard=Card("Внешний вид","Настрой оформление приложения под себя. Изменение применяется сразу, без перезапуска.");
+        var setcard=Card("Вид","Выбери оформление приложения. Настройка сохраняется и применяется сразу.");
         setcard.Padding=new Padding(22);
-        var themeInfo=new Label { Dock=DockStyle.Top, Height=38, Text="Тема приложения", Padding=new Padding(4,10,4,4), Font=new Font("Segoe UI",10,FontStyle.Bold) };
-        var theme=ActionButton("ПЕРЕКЛЮЧИТЬ СВЕТЛУЮ / ТЁМНУЮ ТЕМУ",()=>{light=!light;ApplyTheme();});
-        theme.Height=42;
-        setcard.Controls.Add(theme);
-        setcard.Controls.Add(themeInfo);
+        var themeInfo=new Label { Dock=DockStyle.Top, Height=38, Text="Цветовая тема", Padding=new Padding(4,10,4,4), Font=new Font("Segoe UI",10,FontStyle.Bold) };
+        var themeRow=new FlowLayoutPanel { AutoSize=true, FlowDirection=FlowDirection.LeftToRight, WrapContents=true, Dock=DockStyle.Top, Padding=new Padding(0,4,0,8) };
+        var darkTheme=ActionButton("ТЁМНАЯ ТЕМА",()=>SetTheme(false)); darkTheme.Height=44;
+        var lightTheme=ActionButton("СВЕТЛАЯ ТЕМА",()=>SetTheme(true)); lightTheme.Height=44;
+        themeRow.Controls.Add(darkTheme); themeRow.Controls.Add(lightTheme);
+        setcard.Controls.Add(themeRow); setcard.Controls.Add(themeInfo);
         settings.Controls.Add(setcard);
+
+        var animationCard=Card("Анимации","Плавная подсветка кнопок при наведении. Можно отключить для более строгого интерфейса.");
+        animationCard.Padding=new Padding(22);
+        animationToggleButton=ActionButton("АНИМАЦИИ: ВКЛЮЧЕНЫ",ToggleAnimations);
+        animationToggleButton.Height=44;
+        animationCard.Controls.Add(animationToggleButton);
+        settings.Controls.Add(animationCard);
         pages["Настройки"]=settings;
 
         foreach(var pair in pages.Where(p=>p.Key!="__body")) { var c=pair.Value; c.Dock=DockStyle.Fill; c.Visible=false; body.Controls.Add(c); }
@@ -305,7 +318,7 @@ public sealed class MainForm : Form
     private Button ActionButton(string text,Action action)
     {
         var b=new Button { Text=text, Height=42, MinimumSize=new Size(150,42), AutoSize=true, Padding=new Padding(16,5,16,5), FlatStyle=FlatStyle.Flat, Font=new Font("Segoe UI",9.5f,FontStyle.Bold), Margin=new Padding(0,8,10,8), Cursor=Cursors.Hand };
-        b.Click+=(_,_)=>action(); return b;
+        b.Click+=(_,_)=>action(); AttachButtonEffects(b); return b;
     }
     private void AddTweakCard(Tweak item)
     {
@@ -773,10 +786,20 @@ public sealed class MainForm : Form
                 "$processId = " + Environment.ProcessId + "\n" +
                 "try {\n" +
                 "  while (Get-Process -Id $processId -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 400 }\n" +
-                "  Copy-Item -LiteralPath $source -Destination $target -Force\n" +
+                "  $staged = $target + '.new'\n" +
+                "  $backup = $target + '.previous'\n" +
+                "  Copy-Item -LiteralPath $source -Destination $staged -Force\n" +
+                "  $stagedHash = (Get-FileHash -LiteralPath $staged -Algorithm SHA256).Hash.ToLowerInvariant()\n" +
+                "  if ($stagedHash -ne " + Ps(manifest.sha256) + ") { throw 'Проверка скачанного EXE не пройдена.' }\n" +
+                "  if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Force }\n" +
+                "  Move-Item -LiteralPath $target -Destination $backup -Force\n" +
+                "  try { Move-Item -LiteralPath $staged -Destination $target -Force } catch { Move-Item -LiteralPath $backup -Destination $target -Force; throw }\n" +
+                "  $installedHash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant()\n" +
+                "  if ($installedHash -ne " + Ps(manifest.sha256) + ") { Remove-Item -LiteralPath $target -Force; Move-Item -LiteralPath $backup -Destination $target -Force; throw 'Новый файл не прошёл проверку после установки. Старая версия восстановлена.' }\n" +
                 "  Start-Process -FilePath $target\n" +
                 "  Remove-Item -LiteralPath $source -Force -ErrorAction SilentlyContinue\n" +
                 "  Start-Sleep -Seconds 2\n" +
+                "  Remove-Item -LiteralPath $backup -Force -ErrorAction SilentlyContinue\n" +
                 "  Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue\n" +
                 "} catch { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'PC Booster — ошибка обновления') | Out-Null }";
 
@@ -1009,6 +1032,107 @@ public sealed class MainForm : Form
             cancelButton.Enabled = false;
         }
     }
+    private void LoadAppearance()
+    {
+        try
+        {
+            if (!File.Exists(appearancePath)) return;
+            var saved = JsonSerializer.Deserialize<AppearanceSettings>(File.ReadAllText(appearancePath));
+            if (saved == null) return;
+            light = saved.Light;
+            animationsEnabled = saved.AnimationsEnabled;
+        }
+        catch { light = false; animationsEnabled = true; }
+    }
+
+    private void SaveAppearance()
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(appearancePath)!);
+            File.WriteAllText(appearancePath, JsonSerializer.Serialize(new AppearanceSettings(light, animationsEnabled)));
+        }
+        catch { }
+    }
+
+    private void SetTheme(bool useLight)
+    {
+        light = useLight;
+        SaveAppearance();
+        ApplyTheme();
+    }
+
+    private void ToggleAnimations()
+    {
+        animationsEnabled = !animationsEnabled;
+        SaveAppearance();
+        if (animationToggleButton != null)
+            animationToggleButton.Text = animationsEnabled ? "АНИМАЦИИ: ВКЛЮЧЕНЫ" : "АНИМАЦИИ: ВЫКЛЮЧЕНЫ";
+        foreach (var pair in hoverTimers.ToArray())
+        {
+            pair.Value.Stop();
+            pair.Value.Dispose();
+            hoverTimers.Remove(pair.Key);
+            if (!pair.Key.IsDisposed) pair.Key.BackColor = ButtonBaseColor(pair.Key);
+        }
+    }
+
+    private void AttachButtonEffects(Button button)
+    {
+        button.MouseEnter += (_, _) => AnimateButtonHover(button, true);
+        button.MouseLeave += (_, _) => AnimateButtonHover(button, false);
+    }
+
+    private Color ButtonBaseColor(Button button)
+    {
+        bool nav = navigationButtons.Contains(button);
+        if (!nav) return Accent();
+        return string.Equals(button.Tag as string, currentPage, StringComparison.Ordinal) ? Accent() : PanelColor();
+    }
+
+    private void AnimateButtonHover(Button button, bool entering)
+    {
+        if (button.IsDisposed) return;
+        var target = entering
+            ? (navigationButtons.Contains(button)
+                ? (light ? Color.FromArgb(222, 241, 255) : Color.FromArgb(25, 67, 105))
+                : (light ? Color.FromArgb(42, 145, 215) : Color.FromArgb(91, 194, 255)))
+            : ButtonBaseColor(button);
+        if (!animationsEnabled)
+        {
+            button.BackColor = target;
+            return;
+        }
+        if (hoverTimers.TryGetValue(button, out var old))
+        {
+            old.Stop();
+            old.Dispose();
+            hoverTimers.Remove(button);
+        }
+        var start = button.BackColor;
+        int step = 0;
+        var timer = new System.Windows.Forms.Timer { Interval = 16 };
+        hoverTimers[button] = timer;
+        timer.Tick += (_, _) =>
+        {
+            if (button.IsDisposed)
+            {
+                timer.Stop(); timer.Dispose(); hoverTimers.Remove(button); return;
+            }
+            step++;
+            float t = Math.Min(1f, step / 7f);
+            button.BackColor = Color.FromArgb(
+                (int)(start.R + (target.R - start.R) * t),
+                (int)(start.G + (target.G - start.G) * t),
+                (int)(start.B + (target.B - start.B) * t));
+            if (step >= 7)
+            {
+                timer.Stop(); timer.Dispose(); hoverTimers.Remove(button);
+            }
+        };
+        timer.Start();
+    }
+
     private void ApplyTheme()
     {
         var bg=light?Color.FromArgb(239,247,255):Color.FromArgb(6,18,34);
@@ -1018,6 +1142,7 @@ public sealed class MainForm : Form
         BackColor=bg; sidebar.BackColor=panel; content.BackColor=bg;
         foreach(Control c in Controls) PaintTree(c,bg,panel,text,muted);
         UpdateNavigationVisuals();
+        if (animationToggleButton != null) animationToggleButton.Text = animationsEnabled ? "АНИМАЦИИ: ВКЛЮЧЕНЫ" : "АНИМАЦИИ: ВЫКЛЮЧЕНЫ";
         foreach(var pair in pages.Where(p=>p.Key!="__body")) if(pair.Value is FlowLayoutPanel page) ResizePage(page);
     }
     private void PaintTree(Control c,Color bg,Color panel,Color text,Color muted)
@@ -1086,6 +1211,7 @@ public sealed class MainForm : Form
         }
     }
 
+    private sealed record AppearanceSettings(bool Light, bool AnimationsEnabled);
     private sealed record Tweak(string Id,string Name,string Category,string Description,string Key,string ValueName,RegistryValueKind Kind,object Value);
     private sealed record RegValue(string Key,string Name,bool Existed,string? Value,int Kind);
     private sealed class AiReply{public string? answer{get;set;} public string? error{get;set;}}
