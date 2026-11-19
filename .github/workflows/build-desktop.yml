@@ -24,6 +24,8 @@ jobs:
       - name: Prepare and verify one EXE
         shell: pwsh
         run: |
+          [xml]$project = Get-Content "desktop/PCBooster.Desktop.csproj"
+          $version = $project.Project.PropertyGroup.Version
           $publish = "desktop/bin/Release/net10.0-windows/win-x64/publish"
           $source = Join-Path $publish "PC Booster.exe"
           if (!(Test-Path $source)) { throw "Publish output not found: $source" }
