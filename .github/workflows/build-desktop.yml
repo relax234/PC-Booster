@@ -16,35 +16,32 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
-      - name: Publish compact Windows application
+      - name: Publish compact Windows EXE
         shell: pwsh
         run: |
           dotnet publish desktop/PCBooster.Desktop.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
           if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
-      - name: Package one download
+      - name: Prepare one EXE
         shell: pwsh
         run: |
           $publish = "desktop/bin/Release/net10.0-windows/win-x64/publish"
-          $exe = Join-Path $publish "PC Booster.exe"
-          if (!(Test-Path $exe)) { throw "Publish output not found: $exe" }
-          New-Item -ItemType Directory -Force -Path "package" | Out-Null
-          Copy-Item $exe "package/PC Booster.exe"
-          Copy-Item "desktop/README-RU.txt" "package/Инструкция.txt"
-          Compress-Archive -Path "package/*" -DestinationPath "PC-Booster-Windows-x64.zip" -CompressionLevel Optimal -Force
-          $size = (Get-Item "PC-Booster-Windows-x64.zip").Length
-          Write-Host ("Final ZIP size: {0:N2} MB" -f ($size / 1MB))
-          if ($size -ge 20MB) { throw "ZIP exceeds 20 MB limit: $size bytes" }
-      - name: Publish one-file release
+          $source = Join-Path $publish "PC Booster.exe"
+          if (!(Test-Path $source)) { throw "Publish output not found: $source" }
+          Copy-Item $source "PC-Booster.exe" -Force
+          $size = (Get-Item "PC-Booster.exe").Length
+          Write-Host ("Final EXE size: {0:N2} MB" -f ($size / 1MB))
+          if ($size -ge 30MB) { throw "EXE exceeds 30 MB limit: $size bytes" }
+      - name: Publish direct EXE release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $tag = "desktop-v0.2.0"
+          $tag = "desktop-v0.3.0"
           gh release view $tag --repo ${{ github.repository }} *> $null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $tag --repo ${{ github.repository }} --title "PC Booster Desktop 0.2.0" --notes "Единственный файл загрузки — ZIP. Внутри приложение и инструкция. Для запуска нужен .NET 10 Desktop Runtime x64."
+            gh release create $tag --repo ${{ github.repository }} --title "PC Booster Desktop 0.3.0" --notes "Один файл: PC-Booster.exe. Для запуска требуется .NET 10 Desktop Runtime x64: https://dotnet.microsoft.com/en-us/download/dotnet/10.0"
             if ($LASTEXITCODE -ne 0) { throw "Could not create GitHub release" }
           }
-          gh release upload $tag "PC-Booster-Windows-x64.zip" --repo ${{ github.repository }} --clobber
-          if ($LASTEXITCODE -ne 0) { throw "Could not upload ZIP asset" }
-          gh release edit $tag --repo ${{ github.repository }} --title "PC Booster Desktop 0.2.0" --notes "Единственный файл загрузки — PC-Booster-Windows-x64.zip. Внутри приложение и инструкция. Для запуска нужен .NET 10 Desktop Runtime x64."
+          gh release upload $tag "PC-Booster.exe" --repo ${{ github.repository }} --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Could not upload EXE" }
+          gh release edit $tag --repo ${{ github.repository }} --title "PC Booster Desktop 0.3.0" --notes "Единственный файл загрузки — PC-Booster.exe. Размер проверяется: строго меньше 30 МБ. Для запуска требуется .NET 10 Desktop Runtime x64: https://dotnet.microsoft.com/en-us/download/dotnet/10.0"
