@@ -194,7 +194,9 @@ async fn tweaks(State(state): State<AppState>, headers: HeaderMap) -> impl IntoR
         ("show_hidden_files", "Показывать скрытые файлы", "Проводник", "Открывает отображение скрытых файлов и папок."),
         ("disable_transparency", "Отключить прозрачность", "Внешний вид", "Уменьшает визуальные эффекты интерфейса Windows."),
         ("performance_visual_effects", "Режим визуальных эффектов: производительность", "Производительность", "Выбирает настройку Windows «Наилучшее быстродействие». Внешний вид станет проще."),
-        ("disable_game_dvr", "Отключить фоновую запись игр", "Игры", "Отключает захват игровых клипов в текущем профиле пользователя.")
+        ("disable_game_dvr", "Отключить фоновую запись игр", "Игры", "Отключает захват игровых клипов в текущем профиле пользователя."),
+        ("disable_mouse_acceleration", "Отключить ускорение мыши", "Управление", "Делает движение курсора более предсказуемым; исходные параметры сохраняются."),
+        ("faster_menu_delay", "Ускорить открытие меню", "Интерфейс", "Уменьшает задержку открытия меню Windows; исходное значение сохраняется.")
     ];
     let result: Vec<_> = items.iter().map(|(id, name, category, description)| serde_json::json!({
         "id": id,
@@ -222,6 +224,12 @@ fn tweak_settings(id: &str) -> Option<Vec<(&'static str, &'static str, &'static 
             (game_store, "GameDVR_Enabled", "dword", "0"),
             (game_dvr, "AppCaptureEnabled", "dword", "0")
         ]),
+        "disable_mouse_acceleration" => Some(vec![
+            (mouse, "MouseSpeed", "string", "0"),
+            (mouse, "MouseThreshold1", "string", "0"),
+            (mouse, "MouseThreshold2", "string", "0")
+        ]),
+        "faster_menu_delay" => Some(vec![(desktop, "MenuShowDelay", "string", "100")]),
         _ => None,
     }
 }
@@ -332,4 +340,27 @@ async fn rollback_tweak(State(state): State<AppState>, headers: HeaderMap, Json(
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error":error})));
     }
     (StatusCode::OK, Json(serde_json::json!({"ok":true,"id":body.id,"message":"Исходные настройки восстановлены."})))
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::tweak_settings;
+
+    #[test]
+    fn only_known_tweaks_are_executable() {
+        for id in [
+            "show_file_extensions",
+            "show_hidden_files",
+            "disable_transparency",
+            "performance_visual_effects",
+            "disable_game_dvr",
+            "disable_mouse_acceleration",
+            "faster_menu_delay",
+        ] {
+            assert!(tweak_settings(id).is_some(), "missing allowlisted tweak: {id}");
+        }
+        assert!(tweak_settings("run_powershell").is_none());
+        assert!(tweak_settings("arbitrary_registry_write").is_none());
+    }
 }
