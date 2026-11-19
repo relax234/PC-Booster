@@ -13,7 +13,13 @@ function send(res, status, payload) {
   res.end(JSON.stringify(payload));
 }
 function allowedOrigin(origin) {
-  return !origin || origin === FRONTEND_ORIGIN || /^https?:\\/\\/(localhost|127\\.0\\.0\\.1)(:\\d+)?$/.test(origin);
+  if (!origin || origin === FRONTEND_ORIGIN) return true;
+  try {
+    const parsed = new URL(origin);
+    return ["http:", "https:"].includes(parsed.protocol) && ["localhost", "127.0.0.1"].includes(parsed.hostname);
+  } catch {
+    return false;
+  }
 }
 function rateLimited(key) {
   const now = Date.now();
