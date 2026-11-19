@@ -186,8 +186,12 @@ async fn diagnostics(State(state): State<AppState>, headers: HeaderMap) -> impl 
         return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error":"Invalid pairing token"})));
     }
 
-    let mut system = System::new_all();
-    system.refresh_all();
+    // Refresh only the data shown in the report. A full refresh also walks
+    // unrelated system collectors and makes a quick scan unnecessarily slow.
+    let mut system = System::new();
+    system.refresh_memory();
+    system.refresh_cpu();
+    system.refresh_processes();
     let total_memory = system.total_memory();
     let used_memory = system.used_memory();
     let disks = Disks::new_with_refreshed_list();
