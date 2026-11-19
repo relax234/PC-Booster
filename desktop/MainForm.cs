@@ -443,7 +443,7 @@ public sealed class MainForm : Form
                         throw new Exception("Проверка собранного файла не пройдена.");
                     ready = true;
                 }
-                catch (Exception)
+                catch
                 {
                     updateStatusLabel.Text = "Патч не подошёл, загружаю полный файл...";
                     try { if (File.Exists(newExePath)) File.Delete(newExePath); } catch { }
