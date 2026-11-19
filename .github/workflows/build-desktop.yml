@@ -80,21 +80,42 @@ jobs:
             $oldManifest = Get-Content $oldManifestPath -Raw | ConvertFrom-Json
             $deltaFrom = [string]$oldManifest.version
             if ($deltaFrom -eq $version) {
-              if ($oldManifest.deltaFile -and (Test-Path ([string]$oldManifest.deltaFile))) {
-                $deltaFrom = [string]$oldManifest.deltaFromVersion
+              $baseVersion = [string]$oldManifest.deltaFromVersion
+              if ($hash -eq [string]$oldManifest.sha256 -and $oldManifest.deltaFile -and (Test-Path ([string]$oldManifest.deltaFile))) {
+                $deltaFrom = $baseVersion
                 $deltaFile = [string]$oldManifest.deltaFile
                 $deltaSize = [long]$oldManifest.deltaSize
                 $deltaHash = [string]$oldManifest.deltaSha256
-                Write-Host ("Preserving existing delta patch: {0}" -f $deltaFile)
+                Write-Host ("Preserving verified delta patch: {0}" -f $deltaFile)
               }
               else {
-                $existingPatch = Get-ChildItem -Path "." -Filter "PC-Booster-*-to-$version.xdelta" -File | Select-Object -First 1
-                if ($existingPatch -and $existingPatch.Name -match '^PC-Booster-(\d+\.\d+\.\d+)-to-') {
-                  $deltaFrom = $Matches[1]
-                  $deltaFile = $existingPatch.Name
-                  $deltaSize = $existingPatch.Length
-                  $deltaHash = (Get-FileHash $existingPatch.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-                  Write-Host ("Recovered existing delta patch: {0}" -f $deltaFile)
+                if ($baseVersion -notmatch '^\d+\.\d+\.\d+$') {
+                  $existingPatch = Get-ChildItem -Path "." -Filter "PC-Booster-*-to-$version.xdelta" -File | Select-Object -First 1
+                  if ($existingPatch -and $existingPatch.Name -match '^PC-Booster-(\d+\.\d+\.\d+)-to-') { $baseVersion = $Matches[1] }
+                }
+                if ($baseVersion -match '^\d+\.\d+\.\d+$' -and $baseVersion -ne $version) {
+                  $baseExe = Join-Path $env:RUNNER_TEMP "PC-Booster-base-$baseVersion.exe"
+                  $baseUrl = "https://github.com/relax234/PC-Booster/releases/download/desktop-v$baseVersion/PC-Booster.exe"
+                  Invoke-WebRequest -Uri $baseUrl -OutFile $baseExe
+                  if (!(Test-Path $baseExe)) { throw "Could not download base EXE for delta generation" }
+                  $deltaFrom = $baseVersion
+                  $deltaFile = "PC-Booster-$baseVersion-to-$version.xdelta"
+                  & ".\xdelta3.exe" -e -s $baseExe "PC-Booster.exe" $deltaFile
+                  if ($LASTEXITCODE -ne 0) { throw "Could not regenerate delta patch" }
+                  $verifyExe = Join-Path $env:RUNNER_TEMP "PC-Booster-delta-verify.exe"
+                  & ".\xdelta3.exe" -d -s $baseExe $deltaFile $verifyExe
+                  if ($LASTEXITCODE -ne 0 -or !(Test-Path $verifyExe)) { throw "Could not verify regenerated delta patch" }
+                  $verifyHash = (Get-FileHash $verifyExe -Algorithm SHA256).Hash.ToLowerInvariant()
+                  Remove-Item $verifyExe -Force
+                  if ($verifyHash -ne $hash) { throw "Regenerated delta patch does not recreate the published EXE" }
+                  $deltaSize = (Get-Item $deltaFile).Length
+                  if ($deltaSize -ge $size) {
+                    Remove-Item $deltaFile -Force
+                    $deltaFrom = ""; $deltaFile = ""; $deltaSize = 0
+                  } else {
+                    $deltaHash = (Get-FileHash $deltaFile -Algorithm SHA256).Hash.ToLowerInvariant()
+                    Write-Host ("Regenerated delta patch size: {0:N2} MB" -f ($deltaSize / 1MB))
+                  }
                 }
               }
             }
