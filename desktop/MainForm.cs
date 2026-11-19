@@ -93,7 +93,7 @@ public sealed class MainForm : Form
             var name=item.Name;
             var b=new Button { Text=item.Caption, Width=198, Height=48, TextAlign=ContentAlignment.MiddleLeft, FlatStyle=FlatStyle.Flat, Tag=name, Margin=new Padding(0,0,0,8), Padding=new Padding(12,0,8,0), Font=new Font("Segoe UI",10,FontStyle.Bold), Cursor=Cursors.Hand };
             b.FlatAppearance.BorderSize=0;
-            b.FlatAppearance.MouseOverBackColor=Color.FromArgb(35,61,43);
+            b.FlatAppearance.MouseOverBackColor=Color.FromArgb(25,65,104);
             b.Click+=(_,_)=>ShowPage(name);
             navigationButtons.Add(b);
             nav.Controls.Add(b);
@@ -146,7 +146,7 @@ public sealed class MainForm : Form
         processGrid=new DataGridView {
             Height=420, ReadOnly=true, AllowUserToAddRows=false, AllowUserToDeleteRows=false,
             AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill, RowHeadersVisible=false,
-            SelectionMode=DataGridViewSelectionMode.FullRowSelect, BackgroundColor=Color.FromArgb(22,34,27),
+            SelectionMode=DataGridViewSelectionMode.FullRowSelect, BackgroundColor=Color.FromArgb(13,32,54),
             BorderStyle=BorderStyle.None, MultiSelect=false, AllowUserToResizeRows=false,
             ColumnHeadersHeight=38
         };
@@ -250,17 +250,17 @@ public sealed class MainForm : Form
     }
     private Panel Card(string title,string subtitle)
     {
-        var p=new CardFlowPanel { FlowDirection=FlowDirection.TopDown, WrapContents=false, AutoSize=true, AutoSizeMode=AutoSizeMode.GrowAndShrink, Width=860, Padding=new Padding(22), Margin=new Padding(0,0,0,18), BackColor=Color.FromArgb(20,31,24), Tag="card" };
+        var p=new CardFlowPanel { FlowDirection=FlowDirection.TopDown, WrapContents=false, AutoSize=true, AutoSizeMode=AutoSizeMode.GrowAndShrink, Width=860, Padding=new Padding(22), Margin=new Padding(0,0,0,18), BackColor=Color.FromArgb(13,29,48), Tag="card" };
         p.ControlAdded += (_,e) => FitCardControl(p,e.Control);
         p.SizeChanged += (_,_) => { foreach(Control child in p.Controls) FitCardControl(p,child); };
         var h=new Label { Text=title, AutoSize=true, Font=new Font("Segoe UI",14,FontStyle.Bold), Margin=new Padding(0,0,0,5) };
         p.Controls.Add(h);
-        if(!string.IsNullOrWhiteSpace(subtitle)) p.Controls.Add(new Label { Text=subtitle, AutoSize=true, Font=new Font("Segoe UI",9.5f), ForeColor=Color.FromArgb(155,177,161), Margin=new Padding(0,0,0,12) });
+        if(!string.IsNullOrWhiteSpace(subtitle)) p.Controls.Add(new Label { Text=subtitle, AutoSize=true, Font=new Font("Segoe UI",9.5f), ForeColor=Color.FromArgb(158,188,216), Margin=new Padding(0,0,0,12) });
         return p;
     }
     private Control Metric(string caption,ref Label value)
     {
-        var p=new Panel { Dock=DockStyle.Fill, Padding=new Padding(12), Margin=new Padding(0,0,10,0), BackColor=Color.FromArgb(28,44,34), Tag="metric" };
+        var p=new Panel { Dock=DockStyle.Fill, Padding=new Padding(12), Margin=new Padding(0,0,10,0), BackColor=Color.FromArgb(17,43,69), Tag="metric" };
         p.Controls.Add(value); value.Dock=DockStyle.Bottom; value.Height=42; value.Font=new Font("Segoe UI",19,FontStyle.Bold);
         p.Controls.Add(new Label { Text=caption, Dock=DockStyle.Top, Height=26, Font=new Font("Segoe UI",8,FontStyle.Bold) });
         return p;
@@ -272,7 +272,7 @@ public sealed class MainForm : Form
     }
     private void AddTweakCard(Tweak item)
     {
-        var p=new CardFlowPanel { Width=820, AutoSize=true, AutoSizeMode=AutoSizeMode.GrowAndShrink, FlowDirection=FlowDirection.TopDown, WrapContents=false, Padding=new Padding(16), Margin=new Padding(0,0,0,12), BackColor=Color.FromArgb(25,42,31), Tag="card" };
+        var p=new CardFlowPanel { Width=820, AutoSize=true, AutoSizeMode=AutoSizeMode.GrowAndShrink, FlowDirection=FlowDirection.TopDown, WrapContents=false, Padding=new Padding(16), Margin=new Padding(0,0,0,12), BackColor=Color.FromArgb(15,37,61), Tag="card" };
         var name=new Label { Text=item.Name+"  ·  "+item.Category, AutoSize=true, Font=new Font("Segoe UI",10,FontStyle.Bold), Margin=new Padding(0,0,0,5) };
         var desc=new Label { Text=item.Description, AutoSize=true, Margin=new Padding(0,0,0,8) };
         var state=new Label { Text=rollback.ContainsKey(item.Id)?"Применено":"Не применено", AutoSize=true, TextAlign=ContentAlignment.MiddleLeft, Name="state", Padding=new Padding(4,10,8,0) };
@@ -351,8 +351,8 @@ public sealed class MainForm : Form
         {
             bool active=string.Equals(button.Tag as string,currentPage,StringComparison.Ordinal);
             button.BackColor=active?Accent():PanelColor();
-            button.ForeColor=active?(light?Color.White:Color.FromArgb(8,29,16)):TextColor();
-            button.FlatAppearance.MouseOverBackColor=light?Color.FromArgb(222,242,228):Color.FromArgb(35,61,43);
+            button.ForeColor=active?(light?Color.White:Color.FromArgb(4,24,42)):TextColor();
+            button.FlatAppearance.MouseOverBackColor=light?Color.FromArgb(220,239,255):Color.FromArgb(25,65,104);
         }
     }
 
@@ -865,24 +865,24 @@ public sealed class MainForm : Form
             MinimizeBox = false;
             ControlBox = false;
             ShowInTaskbar = false;
-            BackColor = Color.FromArgb(13, 23, 17);
-            ForeColor = Color.FromArgb(237, 246, 239);
+            BackColor = Color.FromArgb(6, 18, 34);
+            ForeColor = Color.FromArgb(239, 247, 255);
             Font = new Font("Segoe UI", 9.5f);
 
             var accent = new Panel
             {
                 Dock = DockStyle.Top,
                 Height = 5,
-                BackColor = Color.FromArgb(105, 220, 145)
+                BackColor = Color.FromArgb(75, 183, 255)
             };
             heading.SetBounds(28, 24, 460, 30);
             heading.Text = "Загружаю PC Booster " + version;
             heading.Font = new Font("Segoe UI", 15, FontStyle.Bold);
-            heading.ForeColor = Color.FromArgb(237, 246, 239);
+            heading.ForeColor = Color.FromArgb(239, 247, 255);
 
             stage.SetBounds(30, 67, 458, 24);
             stage.Text = "Подключаюсь к серверу обновлений...";
-            stage.ForeColor = Color.FromArgb(180, 199, 185);
+            stage.ForeColor = Color.FromArgb(164, 190, 216);
 
             progressBar.SetBounds(30, 106, 458, 16);
             progressBar.Minimum = 0;
@@ -891,19 +891,19 @@ public sealed class MainForm : Form
 
             amount.SetBounds(30, 136, 350, 24);
             amount.Text = "Подготовка загрузки...";
-            amount.ForeColor = Color.FromArgb(180, 199, 185);
+            amount.ForeColor = Color.FromArgb(164, 190, 216);
 
             percent.SetBounds(400, 136, 88, 24);
             percent.TextAlign = ContentAlignment.MiddleRight;
             percent.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-            percent.ForeColor = Color.FromArgb(105, 233, 155);
+            percent.ForeColor = Color.FromArgb(89, 202, 255);
 
             cancelButton.SetBounds(358, 178, 130, 38);
             cancelButton.Text = "Отменить";
             cancelButton.FlatStyle = FlatStyle.Flat;
-            cancelButton.FlatAppearance.BorderColor = Color.FromArgb(64, 91, 71);
-            cancelButton.BackColor = Color.FromArgb(26, 43, 32);
-            cancelButton.ForeColor = Color.FromArgb(237, 246, 239);
+            cancelButton.FlatAppearance.BorderColor = Color.FromArgb(48, 91, 130);
+            cancelButton.BackColor = Color.FromArgb(17, 43, 69);
+            cancelButton.ForeColor = Color.FromArgb(239, 247, 255);
             cancelButton.Cursor = Cursors.Hand;
             cancelButton.Click += (_, _) =>
             {
@@ -965,10 +965,10 @@ public sealed class MainForm : Form
     }
     private void ApplyTheme()
     {
-        var bg=light?Color.FromArgb(241,247,243):Color.FromArgb(10,17,13);
-        var panel=light?Color.White:Color.FromArgb(20,32,25);
-        var text=light?Color.FromArgb(25,43,31):Color.FromArgb(237,246,239);
-        var muted=light?Color.FromArgb(92,112,98):Color.FromArgb(155,177,161);
+        var bg=light?Color.FromArgb(239,247,255):Color.FromArgb(6,18,34);
+        var panel=light?Color.White:Color.FromArgb(12,29,49);
+        var text=light?Color.FromArgb(18,48,75):Color.FromArgb(237,246,239);
+        var muted=light?Color.FromArgb(83,119,153):Color.FromArgb(158,188,216);
         BackColor=bg; sidebar.BackColor=panel; content.BackColor=bg;
         foreach(Control c in Controls) PaintTree(c,bg,panel,text,muted);
         UpdateNavigationVisuals();
@@ -979,13 +979,13 @@ public sealed class MainForm : Form
         c.ForeColor=text;
         if(c is Panel p)
         {
-            p.BackColor=p.Tag?.ToString()=="card" || p.Tag?.ToString()=="metric" ? (light?Color.White:Color.FromArgb(22,36,27)) : p.Parent==sidebar?panel:bg;
+            p.BackColor=p.Tag?.ToString()=="card" || p.Tag?.ToString()=="metric" ? (light?Color.White:Color.FromArgb(14,34,57)) : p.Parent==sidebar?panel:bg;
         }
         if(c is Button b)
         {
             bool navigation=b.Parent==sidebar.Controls.Cast<Control>().FirstOrDefault(x=>x is FlowLayoutPanel);
             b.BackColor=navigation?PanelColor():Accent();
-            b.ForeColor=navigation?TextColor():(light?Color.White:Color.FromArgb(7,29,15));
+            b.ForeColor=navigation?TextColor():(light?Color.White:Color.FromArgb(4,24,42));
             b.FlatAppearance.BorderSize=0;
         }
         if(c is TextBox or RichTextBox){c.BackColor=panel;c.ForeColor=text;}
@@ -993,9 +993,9 @@ public sealed class MainForm : Form
         if(c is DataGridView g){g.BackgroundColor=panel;g.DefaultCellStyle.BackColor=panel;g.DefaultCellStyle.ForeColor=text;g.ColumnHeadersDefaultCellStyle.BackColor=Accent();g.ColumnHeadersDefaultCellStyle.ForeColor=Color.Black;g.EnableHeadersVisualStyles=false;}
         foreach(Control child in c.Controls) PaintTree(child,bg,panel,text,muted);
     }
-    private Color Accent()=>light?Color.FromArgb(26,151,79):Color.FromArgb(105,233,155);
-    private Color PanelColor()=>light?Color.White:Color.FromArgb(20,31,24);
-    private Color TextColor()=>light?Color.FromArgb(25,43,31):Color.FromArgb(237,246,239);
+    private Color Accent()=>light?Color.FromArgb(27,139,219):Color.FromArgb(105,233,155);
+    private Color PanelColor()=>light?Color.White:Color.FromArgb(13,29,48);
+    private Color TextColor()=>light?Color.FromArgb(18,48,75):Color.FromArgb(237,246,239);
     private static string FormatBytes(long n){string[] u={"Б","КБ","МБ","ГБ","ТБ"};double v=n;int i=0;while(v>=1024&&i<u.Length-1){v/=1024;i++;}return $"{v:0.0} {u[i]}";}
     private static (ulong idle,ulong kernel,ulong user) ReadCpuTimes(){GetSystemTimes(out var i,out var k,out var u);return(ToUlong(i),ToUlong(k),ToUlong(u));}
     private static ulong ToUlong(FileTime t)=>((ulong)t.High<<32)|t.Low;
@@ -1035,7 +1035,7 @@ public sealed class MainForm : Form
             path.AddArc(w-d,h-d,d,d,0,90);
             path.AddArc(1,h-d,d,d,90,90);
             path.CloseFigure();
-            using var pen=new Pen(Color.FromArgb(48,105,233,155),1);
+            using var pen=new Pen(Color.FromArgb(48,75,183,255),1);
             e.Graphics.DrawPath(pen,path);
         }
     }
