@@ -79,12 +79,24 @@ jobs:
           if ((Test-Path $oldExe) -and (Test-Path $oldManifestPath)) {
             $oldManifest = Get-Content $oldManifestPath -Raw | ConvertFrom-Json
             $deltaFrom = [string]$oldManifest.version
-            if ($deltaFrom -eq $version -and $oldManifest.deltaFile) {
-              $deltaFrom = [string]$oldManifest.deltaFromVersion
-              $deltaFile = [string]$oldManifest.deltaFile
-              $deltaSize = [long]$oldManifest.deltaSize
-              $deltaHash = [string]$oldManifest.deltaSha256
-              Write-Host ("Preserving existing delta patch: {0}" -f $deltaFile)
+            if ($deltaFrom -eq $version) {
+              if ($oldManifest.deltaFile -and (Test-Path ([string]$oldManifest.deltaFile))) {
+                $deltaFrom = [string]$oldManifest.deltaFromVersion
+                $deltaFile = [string]$oldManifest.deltaFile
+                $deltaSize = [long]$oldManifest.deltaSize
+                $deltaHash = [string]$oldManifest.deltaSha256
+                Write-Host ("Preserving existing delta patch: {0}" -f $deltaFile)
+              }
+              else {
+                $existingPatch = Get-ChildItem -Path "." -Filter "PC-Booster-*-to-$version.xdelta" -File | Select-Object -First 1
+                if ($existingPatch -and $existingPatch.Name -match '^PC-Booster-(\d+\.\d+\.\d+)-to-') {
+                  $deltaFrom = $Matches[1]
+                  $deltaFile = $existingPatch.Name
+                  $deltaSize = $existingPatch.Length
+                  $deltaHash = (Get-FileHash $existingPatch.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+                  Write-Host ("Recovered existing delta patch: {0}" -f $deltaFile)
+                }
+              }
             }
             elseif ($deltaFrom -match '^\d+\.\d+\.\d+$' -and $deltaFrom -ne $version) {
               $deltaFile = "PC-Booster-$deltaFrom-to-$version.xdelta"
