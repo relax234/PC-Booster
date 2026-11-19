@@ -96,7 +96,9 @@ jobs:
             $deltaFrom = [string]$oldManifest.version
             if ($deltaFrom -eq $version) {
               $baseVersion = [string]$oldManifest.deltaFromVersion
-              if ($preferredDeltaBase -match '^\d+\.\d+\.\d+                $deltaFrom = $baseVersion
+              if ($preferredDeltaBase -ne "") { $baseVersion = $preferredDeltaBase }
+              if ($hash -eq [string]$oldManifest.sha256 -and $oldManifest.deltaFile -and $baseVersion -eq [string]$oldManifest.deltaFromVersion -and (Test-Path ([string]$oldManifest.deltaFile))) {
+                $deltaFrom = $baseVersion
                 $deltaFile = [string]$oldManifest.deltaFile
                 $deltaSize = [long]$oldManifest.deltaSize
                 $deltaHash = [string]$oldManifest.deltaSha256
