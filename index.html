@@ -1,23 +1,95 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0b120f">
-<meta name="description" content="PC Booster — Windows-приложение для диагностики и оптимизации ПК.">
-<title>PC Booster — Windows app</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071426">
+<meta name="description" content="PC Booster — приложение для диагностики и оптимизации Windows 10 и 11.">
+<title>PC Booster — контроль над твоим ПК</title>
 <style>
-:root{color-scheme:dark;--bg:#09110d;--panel:#142219;--line:#294432;--green:#78e99e;--text:#eef8f0;--muted:#a1b5a6}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 15% 5%,#1c482b88,transparent 36rem),radial-gradient(ellipse at 90% 70%,#17452a55,transparent 30rem),var(--bg);color:var(--text);font:15px/1.55 "Segoe UI",Arial,sans-serif;display:grid;place-items:center;padding:24px}
-main{width:min(760px,100%);text-align:center}.brand{display:inline-flex;align-items:center;gap:12px;font-weight:800;font-size:17px;letter-spacing:.08em}.logo{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:#1b3b27;border:1px solid #4b8b5b;color:var(--green);font-size:24px}
-h1{font-size:clamp(38px,7vw,64px);line-height:1.05;letter-spacing:-.055em;margin:34px 0 14px}p{color:var(--muted);font-size:16px;max-width:570px;margin:0 auto}
-.actions{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin:30px 0 24px}a{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 20px;border-radius:13px;text-decoration:none;font-weight:750;transition:.18s}
-.primary{background:linear-gradient(135deg,#9af3b6,#62dc8b);color:#082012;box-shadow:0 9px 30px #3ac46c2b}.secondary{border:1px solid var(--line);background:#142219;color:var(--text)}a:hover{transform:translateY(-2px);filter:brightness(1.06)}
-.note{margin-top:26px;padding:17px;border:1px solid var(--line);border-radius:15px;background:#112017aa;color:var(--muted);font-size:13px}footer{margin-top:32px;color:#6f8776;font-size:11px}
-</style></head><body><main>
-<div class="brand"><span class="logo">✦</span><span>PC BOOSTER</span></div>
-<h1>Твой ПК.<br>Под твоим контролем.</h1>
-<p>PC Booster — отдельное приложение для Windows. Проверка компьютера, оптимизация, процессы и AI-помощник находятся внутри приложения. Этот сайт нужен только для перехода и загрузки.</p>
-<div class="actions"><a class="primary" href="/PC-Booster-Setup.exe">Скачать установщик PC Booster</a></div>
-<div class="note">Windows 10/11 · x64 · Установщик Windows · Ярлыки и удаление через Windows.</div>
-<footer>PC Booster · Навигационная страница</footer>
-</main></body></html>
+:root{color-scheme:dark;--bg:#071426;--panel:#0d2038;--panel2:#102945;--line:#244566;--blue:#55b8ff;--cyan:#72e0ff;--text:#f2f8ff;--muted:#a5bad0}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;overflow-x:hidden;background:radial-gradient(ellipse at 12% 8%,#1264a84a,transparent 34rem),radial-gradient(ellipse at 90% 78%,#075c8d38,transparent 32rem),linear-gradient(145deg,#061222,#091b31 55%,#071426);color:var(--text);font:15px/1.6 "Segoe UI",Arial,sans-serif}
+body:before,body:after{content:"";position:fixed;z-index:-1;border:1px solid #3a9bd51c;border-radius:50%;width:560px;height:560px;pointer-events:none}
+body:before{top:-350px;right:-150px;box-shadow:0 0 0 55px #3a9bd50a,0 0 0 110px #3a9bd508}
+body:after{bottom:-420px;left:-230px;box-shadow:0 0 0 65px #3a9bd50a,0 0 0 130px #3a9bd508}
+main{width:min(1080px,100%);margin:auto;padding:28px 26px 34px}
+header{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:850;font-size:15px;letter-spacing:.13em}
+.logo{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,#1b5b91,#123456);border:1px solid #4ca9e8;color:#a9e6ff;font-size:23px;box-shadow:0 8px 26px #1685d52c}
+.top-tag{color:#a9c7e1;border:1px solid #2b5275;background:#0b2037a8;border-radius:99px;padding:7px 13px;font-size:12px}
+.hero{display:grid;grid-template-columns:1.08fr .92fr;align-items:center;gap:52px;padding:88px 0 66px}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;padding:7px 12px;border-radius:99px;border:1px solid #28618b;background:#0d2b49;color:#9edaff;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.dot{width:7px;height:7px;border-radius:50%;background:#63d5ff;box-shadow:0 0 12px #63d5ff}
+h1{font-size:clamp(42px,6vw,70px);line-height:1.04;letter-spacing:-.06em;margin:22px 0 18px;max-width:650px}
+h1 span{background:linear-gradient(100deg,#70caff,#9deaff 65%,#6d9fff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{font-size:17px;line-height:1.75;color:var(--muted);max-width:570px;margin:0}
+.actions{display:flex;flex-wrap:wrap;gap:13px;margin:30px 0 17px}
+a{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 21px;border-radius:14px;text-decoration:none;font-weight:750;transition:transform .18s,filter .18s,border-color .18s}
+.primary{color:#04182a;background:linear-gradient(115deg,#8cddff,#55b8ff 60%,#65d7ee);box-shadow:0 12px 34px #168bd640}
+.secondary{color:#dceeff;border:1px solid #2b5275;background:#102945}
+a:hover{transform:translateY(-3px);filter:brightness(1.08)}.secondary:hover{border-color:#65bfff}
+.small{font-size:12px;color:#819bb5}
+.visual{position:relative;min-height:350px;display:grid;place-items:center}
+.orbit{position:absolute;width:320px;height:320px;border:1px solid #3ca9e52b;border-radius:50%;box-shadow:0 0 0 34px #3ca9e509,0 0 0 68px #3ca9e506}
+.screen{position:relative;width:min(100%,390px);padding:20px;border-radius:23px;border:1px solid #37678c;background:linear-gradient(145deg,#102c49ed,#0a1c32f2);box-shadow:0 30px 90px #0008,0 0 50px #168bd51c;transform:rotate(-3deg)}
+.screen-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;color:#dff3ff;font-size:13px;font-weight:750}
+.status{font-size:10px;color:#8ee6c0;background:#123b3a;border:1px solid #28645a;border-radius:99px;padding:5px 9px}
+.score{display:flex;align-items:center;gap:18px;padding:18px;border:1px solid #2a5275;background:#0b2038;border-radius:17px}
+.ring{width:82px;height:82px;flex:none;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#62caff 0 86%,#1c3b59 86%);position:relative}
+.ring:before{content:"";position:absolute;inset:7px;border-radius:50%;background:#0d2540}
+.ring b{position:relative;font-size:22px}
+.score strong{display:block;font-size:15px}.score small{color:#91abc4}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin-top:12px}
+.metric{padding:14px;border-radius:14px;background:#0b2038;border:1px solid #234766}
+.metric span{display:block;color:#91abc4;font-size:11px}.metric b{font-size:19px;color:#dff4ff}
+.bar{height:5px;background:#1b3b58;border-radius:9px;margin-top:9px;overflow:hidden}.bar i{display:block;height:100%;width:72%;background:linear-gradient(90deg,#3e9ce4,#72dcff);border-radius:9px}
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:0 0 24px}
+.feature{padding:20px;border-radius:18px;border:1px solid #204361;background:linear-gradient(145deg,#0d223aaf,#0b1c30c9)}
+.feature-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#12395b;color:#83d4ff;font-size:18px;margin-bottom:13px}
+.feature h2{font-size:15px;margin:0 0 5px}.feature p{font-size:13px;color:var(--muted);margin:0}
+footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:20px;border-top:1px solid #1d3a55;color:#7892ad;font-size:12px}
+@media(max-width:760px){main{padding:20px 18px}.hero{grid-template-columns:1fr;gap:20px;padding:62px 0 38px}.visual{min-height:310px}.features{grid-template-columns:1fr}.top-tag{display:none}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="brand"><span class="logo">✦</span><span>PC BOOSTER</span></div>
+  <div class="top-tag">WINDOWS 10 / 11 · X64</div>
+</header>
+<section class="hero">
+  <div>
+    <div class="eyebrow"><span class="dot"></span> Умная оптимизация ПК</div>
+    <h1>Больше контроля.<br><span>Больше скорости.</span></h1>
+    <p class="lead">PC Booster — приложение для диагностики и оптимизации Windows. Следи за состоянием компьютера, управляй процессами и поддерживай систему в порядке из одного места.</p>
+    <div class="actions">
+      <a class="primary" href="/PC-Booster-Setup.exe">Скачать установщик <span aria-hidden="true">↓</span></a>
+      <a class="secondary" href="https://github.com/relax234/PC-Booster" target="_blank" rel="noopener noreferrer">Открыть GitHub ↗</a>
+    </div>
+    <div class="small">Windows 10/11 · 64-bit · Установка как обычной программы</div>
+  </div>
+  <div class="visual" aria-label="Иллюстрация интерфейса PC Booster">
+    <div class="orbit"></div>
+    <div class="screen">
+      <div class="screen-head"><span>✦ PC Booster</span><span class="status">● Система в порядке</span></div>
+      <div class="score"><div class="ring"><b>86%</b></div><div><strong>Состояние ПК</strong><small>Ваш компьютер под контролем</small></div></div>
+      <div class="metrics">
+        <div class="metric"><span>Процессор</span><b>Норма</b><div class="bar"><i style="width:42%"></i></div></div>
+        <div class="metric"><span>Память</span><b>Оптимально</b><div class="bar"><i style="width:64%"></i></div></div>
+        <div class="metric"><span>Диск</span><b>Проверен</b><div class="bar"><i style="width:31%"></i></div></div>
+        <div class="metric"><span>Защита</span><b>Активна</b><div class="bar"><i style="width:88%"></i></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="features" aria-label="Возможности">
+  <article class="feature"><div class="feature-icon">⌁</div><h2>Диагностика системы</h2><p>Основная информация о состоянии компьютера в одном интерфейсе.</p></article>
+  <article class="feature"><div class="feature-icon">⚡</div><h2>Оптимизация</h2><p>Инструменты обслуживания Windows и очистки ненужных файлов.</p></article>
+  <article class="feature"><div class="feature-icon">◈</div><h2>Контроль процессов</h2><p>Удобный доступ к сведениям о работе системы и запущенных процессах.</p></article>
+</section>
+<footer><span>© PC Booster</span><span>Приложение для Windows · Сайт загрузки</span></footer>
+</main>
+</body>
+</html>
