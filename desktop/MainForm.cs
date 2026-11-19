@@ -101,7 +101,7 @@ public sealed class MainForm : Form
         foreach(var item in navigation)
         {
             var name=item.Name;
-            var b=new Button { Text=item.Caption, Width=222, Height=54, TextAlign=ContentAlignment.MiddleLeft, FlatStyle=FlatStyle.Flat, UseVisualStyleBackColor=false, Tag=name, Margin=new Padding(0,0,0,8), Padding=new Padding(16,0,8,0), Font=new Font("Segoe UI",10.5f,FontStyle.Bold), Cursor=Cursors.Hand };
+            var b=new PolishedButton { Text=item.Caption, Width=222, Height=54, TextAlign=ContentAlignment.MiddleLeft, FlatStyle=FlatStyle.Flat, UseVisualStyleBackColor=false, Tag=name, Margin=new Padding(0,0,0,8), Padding=new Padding(16,0,8,0), Font=new Font("Segoe UI",10.5f,FontStyle.Bold), Cursor=Cursors.Hand };
             b.FlatAppearance.BorderSize=1; b.FlatAppearance.BorderColor=Color.FromArgb(42,82,57);
             b.FlatAppearance.MouseOverBackColor=Color.FromArgb(28,67,43);
             b.FlatAppearance.MouseDownBackColor=Color.FromArgb(42,112,68);
@@ -345,7 +345,7 @@ public sealed class MainForm : Form
     }
     private Button ActionButton(string text,Action action)
     {
-        var b=new Button { Text=text, Height=44, MinimumSize=new Size(150,44), AutoSize=true, Padding=new Padding(18,6,18,6), FlatStyle=FlatStyle.Flat, UseVisualStyleBackColor=false, Font=new Font("Segoe UI",9.5f,FontStyle.Bold), Margin=new Padding(0,8,10,8), Cursor=Cursors.Hand };
+        var b=new PolishedButton { Text=text, Height=44, MinimumSize=new Size(150,44), AutoSize=true, Padding=new Padding(18,6,18,6), FlatStyle=FlatStyle.Flat, UseVisualStyleBackColor=false, Font=new Font("Segoe UI",9.5f,FontStyle.Bold), Margin=new Padding(0,8,10,8), Cursor=Cursors.Hand };
         b.FlatAppearance.BorderSize=1;
         b.FlatAppearance.BorderColor=light?Color.FromArgb(30,130,72):Color.FromArgb(76,205,132);
         b.FlatAppearance.MouseOverBackColor=light?Color.FromArgb(47,158,91):Color.FromArgb(83,204,128);
@@ -1207,6 +1207,63 @@ public sealed class MainForm : Form
     private sealed record SystemSnapshot(double Cpu,double Ram,double Disk,string Details,DriveSnapshot[] Drives);
     private sealed record DriveSnapshot(string Name,long Total,long Free);
     private sealed record ProcessSnapshot(string Name,long Memory);
+
+    private sealed class PolishedButton : Button
+    {
+        public PolishedButton()
+        {
+            FlatStyle=FlatStyle.Flat;
+            UseVisualStyleBackColor=false;
+            SetStyle(ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|
+                ControlStyles.OptimizedDoubleBuffer|ControlStyles.ResizeRedraw,true);
+            FlatAppearance.BorderSize=1;
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g=e.Graphics;
+            g.SmoothingMode=SmoothingMode.AntiAlias;
+            g.Clear(Parent?.BackColor??SystemColors.Control);
+            var bounds=ClientRectangle;
+            bounds.Inflate(-1,-1);
+            using var path=RoundedRect(bounds,Math.Min(10,Math.Max(5,Height/4)));
+            using(var fill=new SolidBrush(BackColor))
+                g.FillPath(fill,path);
+            if(FlatAppearance.BorderSize>0)
+            {
+                using var border=new Pen(FlatAppearance.BorderColor,FlatAppearance.BorderSize);
+                g.DrawPath(border,path);
+            }
+
+            var textBounds=Rectangle.Inflate(ClientRectangle,-Padding.Left,-Padding.Top);
+            textBounds.Width=Math.Max(0,textBounds.Width-Padding.Right);
+            textBounds.Height=Math.Max(0,textBounds.Height-Padding.Bottom);
+            var flags=TextFormatFlags.SingleLine|TextFormatFlags.EndEllipsis|TextFormatFlags.VerticalCenter;
+            flags|=TextAlign switch
+            {
+                ContentAlignment.TopLeft or ContentAlignment.MiddleLeft or ContentAlignment.BottomLeft=>TextFormatFlags.Left,
+                ContentAlignment.TopRight or ContentAlignment.MiddleRight or ContentAlignment.BottomRight=>TextFormatFlags.Right,
+                _=>TextFormatFlags.HorizontalCenter
+            };
+            if(TextAlign is ContentAlignment.TopLeft or ContentAlignment.TopCenter or ContentAlignment.TopRight)
+                flags=(flags&~TextFormatFlags.VerticalCenter)|TextFormatFlags.Top;
+            else if(TextAlign is ContentAlignment.BottomLeft or ContentAlignment.BottomCenter or ContentAlignment.BottomRight)
+                flags=(flags&~TextFormatFlags.VerticalCenter)|TextFormatFlags.Bottom;
+            TextRenderer.DrawText(g,Text,Font,textBounds,Enabled?ForeColor:SystemColors.GrayText,flags);
+        }
+
+        protected override void OnBackColorChanged(EventArgs e)
+        {
+            base.OnBackColorChanged(e);
+            Invalidate();
+        }
+
+        protected override void OnForeColorChanged(EventArgs e)
+        {
+            base.OnForeColorChanged(e);
+            Invalidate();
+        }
+    }
 
     private sealed class SmoothFlowPanel : FlowLayoutPanel
     {
