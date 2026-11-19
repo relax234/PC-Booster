@@ -198,13 +198,27 @@ public sealed class MainForm : Form
         var lightTheme=ActionButton("СВЕТЛАЯ ТЕМА",()=>SetTheme(true)); lightTheme.Height=44;
         themeRow.Controls.Add(darkTheme); themeRow.Controls.Add(lightTheme);
         setcard.Controls.Add(themeRow); setcard.Controls.Add(themeInfo);
+
+        Panel? animationCard = null;
+        void SelectAppearance(bool showAnimations)
+        {
+            setcard.Visible = !showAnimations;
+            if (animationCard != null) animationCard.Visible = showAnimations;
+            ResizePage(settings);
+        }
+        var appearanceTabs = new FlowLayoutPanel { AutoSize=true, FlowDirection=FlowDirection.LeftToRight, WrapContents=true, Dock=DockStyle.Top, Padding=new Padding(0,4,0,8) };
+        var viewTab = ActionButton("ВИД",()=>SelectAppearance(false)); viewTab.Height=42;
+        var animationTab = ActionButton("АНИМАЦИИ",()=>SelectAppearance(true)); animationTab.Height=42;
+        appearanceTabs.Controls.Add(viewTab); appearanceTabs.Controls.Add(animationTab);
+        settings.Controls.Add(appearanceTabs);
         settings.Controls.Add(setcard);
 
-        var animationCard=Card("Анимации","Плавная подсветка кнопок при наведении. Можно отключить для более строгого интерфейса.");
+        animationCard=Card("Анимации","Плавная подсветка кнопок при наведении. Можно отключить для более строгого интерфейса.");
         animationCard.Padding=new Padding(22);
         animationToggleButton=ActionButton("АНИМАЦИИ: ВКЛЮЧЕНЫ",ToggleAnimations);
         animationToggleButton.Height=44;
         animationCard.Controls.Add(animationToggleButton);
+        animationCard.Visible=false;
         settings.Controls.Add(animationCard);
         pages["Настройки"]=settings;
 
