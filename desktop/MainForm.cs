@@ -205,6 +205,8 @@ public sealed class MainForm : Form
             setcard.Visible = !showAnimations;
             if (animationCard != null) animationCard.Visible = showAnimations;
             settings.PerformLayout();
+            settings.Parent?.PerformLayout();
+            ResizePage(settings);
         }
         var appearanceTabs = new FlowLayoutPanel { AutoSize=true, FlowDirection=FlowDirection.LeftToRight, WrapContents=true, Dock=DockStyle.Top, Padding=new Padding(0,4,0,8) };
         var viewTab = ActionButton("ВИД",()=>SelectAppearance(false)); viewTab.Height=42;
@@ -236,9 +238,9 @@ public sealed class MainForm : Form
         banner.Resize+=(_,_)=>LayoutBanner(); LayoutBanner();
         banner.Paint+=(_,e)=>{
             var g=e.Graphics; g.SmoothingMode=SmoothingMode.AntiAlias;
-            using var brush=new LinearGradientBrush(banner.ClientRectangle,Color.FromArgb(9,75,143),Color.FromArgb(5,27,59),35f); g.FillRectangle(brush,banner.ClientRectangle);
-            using var glow=new SolidBrush(Color.FromArgb(42,32,151,245)); g.FillEllipse(glow,-90,35,360,270);
-            using var pen=new Pen(Color.FromArgb(100,65,174,255),2); g.DrawArc(pen,banner.Width-340,-160,430,430,40,110); g.DrawArc(pen,banner.Width-290,-120,390,390,40,110);
+            using var brush=new LinearGradientBrush(banner.ClientRectangle,Color.FromArgb(24,105,62),Color.FromArgb(8,39,25),35f); g.FillRectangle(brush,banner.ClientRectangle);
+            using var glow=new SolidBrush(Color.FromArgb(42,65,205,125)); g.FillEllipse(glow,-90,35,360,270);
+            using var pen=new Pen(Color.FromArgb(100,90,220,145),2); g.DrawArc(pen,banner.Width-340,-160,430,430,40,110); g.DrawArc(pen,banner.Width-290,-120,390,390,40,110);
             var laptop=new Rectangle(55,48,235,130);
             using var screenBrush=new LinearGradientBrush(laptop,Color.FromArgb(4,14,34),Color.FromArgb(17,86,151),35f);
             using var screenPath=RoundedRect(laptop,12); g.FillPath(screenBrush,screenPath);
@@ -266,11 +268,13 @@ public sealed class MainForm : Form
     }
     private void ResizePages(Panel body)
     {
-        foreach(var pair in pages.Where(p=>p.Key!="__body")) if(pair.Value is FlowLayoutPanel page) ResizePage(page);
+        if (pages.TryGetValue(currentPage, out var active) && active is FlowLayoutPanel page)
+            ResizePage(page);
     }
     private void ResizePage(FlowLayoutPanel page)
     {
-        int width=Math.Max(360,page.ClientSize.Width-34);
+        if (page.IsDisposed || page.ClientSize.Width <= 0) return;
+        int width=Math.Max(240,page.ClientSize.Width-page.Padding.Horizontal-SystemInformation.VerticalScrollBarWidth-10);
         foreach(Control child in page.Controls)
         {
             child.Width=width;
@@ -402,13 +406,18 @@ public sealed class MainForm : Form
         currentPage=name;
         pageTitle.Text=name;
         var body=pages["__body"];
+        var activePage = pages[name];
         body.SuspendLayout();
         try
         {
             foreach(var pair in pages.Where(p=>p.Key!="__body"))
-                pair.Value.Visible=pair.Key==name;
+                pair.Value.Visible=ReferenceEquals(pair.Value,activePage);
+            activePage.BringToFront();
         }
-        finally { body.ResumeLayout(true); }
+        finally { body.ResumeLayout(false); }
+        activePage.PerformLayout();
+        body.PerformLayout();
+        if (activePage is FlowLayoutPanel flowPage) ResizePage(flowPage);
         UpdateNavigationVisuals();
 
         if(name=="Процессы") _ = RefreshProcessesAsync();
@@ -422,7 +431,7 @@ public sealed class MainForm : Form
             bool active=string.Equals(button.Tag as string,currentPage,StringComparison.Ordinal);
             button.BackColor=active?Accent():PanelColor();
             button.ForeColor=active?(light?Color.White:Color.FromArgb(4,24,42)):TextColor();
-            button.FlatAppearance.MouseOverBackColor=light?Color.FromArgb(220,239,255):Color.FromArgb(25,65,104);
+            button.FlatAppearance.MouseOverBackColor=light?Color.FromArgb(224,244,230):Color.FromArgb(31,69,46);
         }
     }
 
@@ -1109,8 +1118,8 @@ public sealed class MainForm : Form
         if (button.IsDisposed) return;
         var target = entering
             ? (navigationButtons.Contains(button)
-                ? (light ? Color.FromArgb(222, 241, 255) : Color.FromArgb(25, 67, 105))
-                : (light ? Color.FromArgb(42, 145, 215) : Color.FromArgb(91, 194, 255)))
+                ? (light ? Color.FromArgb(224, 244, 230) : Color.FromArgb(31, 69, 46))
+                : (light ? Color.FromArgb(47, 158, 91) : Color.FromArgb(91, 211, 139)))
             : ButtonBaseColor(button);
         if (!animationsEnabled)
         {
@@ -1149,22 +1158,22 @@ public sealed class MainForm : Form
 
     private void ApplyTheme()
     {
-        var bg=light?Color.FromArgb(239,247,255):Color.FromArgb(6,18,34);
-        var panel=light?Color.White:Color.FromArgb(12,29,49);
-        var text=light?Color.FromArgb(18,48,75):Color.FromArgb(237,246,239);
-        var muted=light?Color.FromArgb(83,119,153):Color.FromArgb(158,188,216);
+        var bg=light?Color.FromArgb(241,249,244):Color.FromArgb(9,22,17);
+        var panel=light?Color.White:Color.FromArgb(17,36,27);
+        var text=light?Color.FromArgb(24,55,38):Color.FromArgb(235,247,238);
+        var muted=light?Color.FromArgb(91,125,101):Color.FromArgb(160,190,169);
         BackColor=bg; sidebar.BackColor=panel; content.BackColor=bg;
         foreach(Control c in Controls) PaintTree(c,bg,panel,text,muted);
         UpdateNavigationVisuals();
         if (animationToggleButton != null) animationToggleButton.Text = animationsEnabled ? "АНИМАЦИИ: ВКЛЮЧЕНЫ" : "АНИМАЦИИ: ВЫКЛЮЧЕНЫ";
-        foreach(var pair in pages.Where(p=>p.Key!="__body")) if(pair.Value is FlowLayoutPanel page) ResizePage(page);
+        ResizePages(pages["__body"] as Panel ?? content);
     }
     private void PaintTree(Control c,Color bg,Color panel,Color text,Color muted)
     {
         c.ForeColor=text;
         if(c is Panel p)
         {
-            p.BackColor=p.Tag?.ToString()=="card" || p.Tag?.ToString()=="metric" ? (light?Color.White:Color.FromArgb(14,34,57)) : p.Parent==sidebar?panel:bg;
+            p.BackColor=p.Tag?.ToString()=="card" || p.Tag?.ToString()=="metric" ? (light?Color.White:Color.FromArgb(19,42,30)) : p.Parent==sidebar?panel:bg;
         }
         if(c is Button b)
         {
@@ -1178,9 +1187,9 @@ public sealed class MainForm : Form
         if(c is DataGridView g){g.BackgroundColor=panel;g.DefaultCellStyle.BackColor=panel;g.DefaultCellStyle.ForeColor=text;g.ColumnHeadersDefaultCellStyle.BackColor=Accent();g.ColumnHeadersDefaultCellStyle.ForeColor=Color.Black;g.EnableHeadersVisualStyles=false;}
         foreach(Control child in c.Controls) PaintTree(child,bg,panel,text,muted);
     }
-    private Color Accent()=>light?Color.FromArgb(24,126,205):Color.FromArgb(62,177,255);
-    private Color PanelColor()=>light?Color.White:Color.FromArgb(13,29,48);
-    private Color TextColor()=>light?Color.FromArgb(18,48,75):Color.FromArgb(237,246,239);
+    private Color Accent()=>light?Color.FromArgb(35,145,82):Color.FromArgb(62,190,119);
+    private Color PanelColor()=>light?Color.White:Color.FromArgb(17,36,27);
+    private Color TextColor()=>light?Color.FromArgb(24,55,38):Color.FromArgb(235,247,238);
     private static string FormatBytes(long n){string[] u={"Б","КБ","МБ","ГБ","ТБ"};double v=n;int i=0;while(v>=1024&&i<u.Length-1){v/=1024;i++;}return $"{v:0.0} {u[i]}";}
     private static (ulong idle,ulong kernel,ulong user) ReadCpuTimes(){GetSystemTimes(out var i,out var k,out var u);return(ToUlong(i),ToUlong(k),ToUlong(u));}
     private static ulong ToUlong(FileTime t)=>((ulong)t.High<<32)|t.Low;
