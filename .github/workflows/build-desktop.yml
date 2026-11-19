@@ -1,0 +1,38 @@
+name: Build PC Booster Desktop
+on:
+  push:
+    branches: [main]
+    paths:
+      - "desktop/**"
+      - ".github/workflows/build-desktop.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Publish Windows application
+        run: dotnet publish desktop/PCBooster.Desktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+      - name: Package application
+        shell: pwsh
+        run: |
+          $publish = "desktop/bin/Release/net8.0-windows/win-x64/publish"
+          New-Item -ItemType Directory -Force -Path out | Out-Null
+          Copy-Item "$publish/PC Booster.exe" "out/PC Booster.exe"
+          Compress-Archive -Path "out/PC Booster.exe" -DestinationPath "PC-Booster-Windows-x64.zip" -Force
+      - name: Publish desktop release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = "desktop-v0.1.0"
+          gh release view $tag --repo ${{ github.repository }} 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo ${{ github.repository }} --title "PC Booster Desktop 0.1.0" --notes "Native Windows 10/11 x64 desktop application. Local PC diagnostics, process list, reversible Windows tweaks, light/dark themes and PC Booster AI."
+          }
+          gh release upload $tag "out/PC Booster.exe" "PC-Booster-Windows-x64.zip" --repo ${{ github.repository }} --clobber
