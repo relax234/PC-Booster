@@ -205,7 +205,7 @@ async fn diagnostics(State(state): State<AppState>, headers: HeaderMap) -> impl 
         .map(|disk| (disk.total_space(), disk.available_space(), disk.mount_point().to_string_lossy().to_string()))
         .unwrap_or((0, 0, "C:\\".to_string()));
     let mut top_processes: Vec<_> = system.processes().values().map(|p| serde_json::json!({
-        "name": p.name().to_string_lossy(),
+        "name": p.name().to_string(),
         "memoryBytes": p.memory(),
         "cpuPercent": (p.cpu_usage() * 10.0).round() / 10.0
     })).collect();
@@ -229,7 +229,10 @@ async fn diagnostics(State(state): State<AppState>, headers: HeaderMap) -> impl 
             "freeBytes": free_disk,
             "usedPercent": if total_disk == 0 { 0.0 } else { ((total_disk - free_disk) as f64 / total_disk as f64 * 100.0).round() }
         },
-        "disks": disk_list,\n        "topProcesses": top_processes,\n        "processCount": system.processes().len(),\n        "collectedAt": chrono_now()
+        "disks": disk_list,
+        "topProcesses": top_processes,
+        "processCount": system.processes().len(),
+        "collectedAt": chrono_now()
     })))
 }
 
