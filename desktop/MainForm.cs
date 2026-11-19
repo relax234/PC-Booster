@@ -219,9 +219,9 @@ public sealed class MainForm : Form
         settings.Controls.Add(appearanceTabs);
         settings.Controls.Add(setcard);
 
-        animationCard=Card("Анимации","Плавная подсветка кнопок при наведении. Можно отключить для более строгого интерфейса.");
+        animationCard=Card("Анимации","Подсветка кнопок при наведении без мигания. Её можно полностью отключить.");
         animationCard.Padding=new Padding(22);
-        animationToggleButton=ActionButton("АНИМАЦИИ: ВКЛЮЧЕНЫ",ToggleAnimations);
+        animationToggleButton=ActionButton("ПОДСВЕТКА: ВКЛЮЧЕНА",ToggleAnimations);
         animationToggleButton.Height=44;
         animationCard.Controls.Add(animationToggleButton);
         animationCard.Visible=false;
@@ -1118,7 +1118,7 @@ public sealed class MainForm : Form
         animationsEnabled = !animationsEnabled;
         SaveAppearance();
         if (animationToggleButton != null)
-            animationToggleButton.Text = animationsEnabled ? "АНИМАЦИИ: ВКЛЮЧЕНЫ" : "АНИМАЦИИ: ВЫКЛЮЧЕНЫ";
+            animationToggleButton.Text = animationsEnabled ? "АНИМАЦИИ: ВКЛЮЧЕНЫ" : "ПОДСВЕТКА: ВЫКЛЮЧЕНА";
     }
 
     // Hover feedback is intentionally immediate: no per-button timers or rapid
