@@ -3,7 +3,7 @@
   #define AppVersion "0.4.4"
 #endif
 #define MyAppPublisher "PC Booster"
-#define MyAppExeName "PC Booster.exe"
+#define MyAppExeName "PC-Booster.exe"
 
 [Setup]
 AppId={{8B6C1A25-52BD-4F62-9F23-71A4B52D1C44}
