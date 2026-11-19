@@ -40,10 +40,10 @@
  </section>
 </aside>
 <section class="metrics">
- <div class="metric"><div class="metric-top"><span>ПРОЦЕССОР</span><span class="glyph">◈</span></div><b>—</b><small>Ожидание Windows Helper</small></div>
- <div class="metric"><div class="metric-top"><span>ОПЕРАТИВНАЯ ПАМЯТЬ</span><span class="glyph">▤</span></div><b>—</b><small>Ожидание Windows Helper</small></div>
- <div class="metric"><div class="metric-top"><span>НАКОПИТЕЛЬ</span><span class="glyph">▱</span></div><b>—</b><small>Ожидание Windows Helper</small></div>
- <div class="metric"><div class="metric-top"><span>ВИДЕОКАРТА</span><span class="glyph">◇</span></div><b>—</b><small>Ожидание Windows Helper</small></div>
+ <div class="metric"><div class="metric-top"><span>ПРОЦЕССОР</span><span class="glyph">◈</span></div><b id="cpuValue">—</b><small id="cpuSub">Ожидание Windows Helper</small></div>
+ <div class="metric"><div class="metric-top"><span>ОПЕРАТИВНАЯ ПАМЯТЬ</span><span class="glyph">▤</span></div><b id="ramValue">—</b><small id="ramSub">Ожидание Windows Helper</small></div>
+ <div class="metric"><div class="metric-top"><span>НАКОПИТЕЛЬ</span><span class="glyph">▱</span></div><b id="diskValue">—</b><small id="diskSub">Ожидание Windows Helper</small></div>
+ <div class="metric"><div class="metric-top"><span>ВИДЕОКАРТА</span><span class="glyph">◇</span></div><b id="gpuValue">—</b><small id="gpuSub">Будет доступно в следующей версии Helper</small></div>
 </section>
 <section class="lower">
  <div class="card"><div class="cardhead"><h2>МОДУЛИ ОПТИМИЗАЦИИ</h2><span class="sub">ПЛАН РАЗРАБОТКИ</span></div><div class="modules">
@@ -60,8 +60,10 @@ const API_URL='https://pc-booster-ai-api.onrender.com';
 const toast=document.getElementById('toast');let timer;
 function notify(message){toast.textContent=message;toast.classList.add('show');clearTimeout(timer);timer=setTimeout(()=>toast.classList.remove('show'),3500)}
 async function checkAI(){const status=document.getElementById('aiStatus');try{const r=await fetch(API_URL+'/health');const d=await r.json();status.textContent=d.aiConfigured?'AI-сервер подключён. Можешь задать вопрос.':'Сервер работает; для включения AI нужен API-ключ.';}catch{status.textContent='AI-сервер запускается или временно недоступен.';}}
-document.getElementById('scan').addEventListener('click',()=>notify('Сначала установи Windows Helper — он нужен для реальной диагностики.'));
-document.getElementById('helperBtn').addEventListener('click',()=>notify('Windows Helper — следующий этап разработки. Пока системные команды не выполняются.'));
+let helperToken=null;
+async function connectHelper(){const token=prompt('Вставь одноразовый код, который показал PC Booster Helper на твоём компьютере:');if(!token)return;try{const r=await fetch('http://127.0.0.1:47831/diagnostics',{headers:{'X-PC-Booster-Token':token.trim()}});const d=await r.json();if(!r.ok)throw new Error(d.error||'Не удалось подключиться');helperToken=token.trim();document.getElementById('cpuValue').textContent=d.cpu.logicalProcessors+' потоков';document.getElementById('cpuSub').textContent=d.os;document.getElementById('ramValue').textContent=d.memory.usedPercent+'%';document.getElementById('ramSub').textContent=(d.memory.availableBytes/1073741824).toFixed(1)+' ГБ свободно';document.getElementById('diskValue').textContent=d.systemDrive.usedPercent+'%';document.getElementById('diskSub').textContent=(d.systemDrive.freeBytes/1073741824).toFixed(1)+' ГБ свободно на '+d.systemDrive.name;document.getElementById('gpuValue').textContent='Н/Д';document.querySelector('.status').textContent='ПОДКЛЮЧЁН';document.querySelector('.status').style.color='#a6ffd0';document.querySelector('.status').style.borderColor='#2d8052';notify('Windows Helper подключён. Получены диагностические данные.');}catch(e){helperToken=null;notify(e.message||'Подключение не удалось. Проверь, запущен ли Helper.');}}
+document.getElementById('scan').addEventListener('click',()=>helperToken?connectHelper():notify('Нажми «Подключить Windows Helper» и введи код из приложения.'));
+document.getElementById('helperBtn').addEventListener('click',connectHelper);
 async function send(){const input=document.getElementById('prompt'),button=document.getElementById('send'),output=document.getElementById('chatResponse');const message=input.value.trim();if(!message)return;button.disabled=true;button.textContent='…';output.style.display='block';output.textContent='PC Booster AI думает…';try{const r=await fetch(API_URL+'/api/assistant',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Ошибка AI-сервера');output.textContent=data.answer;input.value='';}catch(e){output.textContent=e.message||'Не удалось связаться с AI-сервером.';}finally{button.disabled=false;button.textContent='➤';}}
 document.getElementById('send').addEventListener('click',send);
 document.getElementById('prompt').addEventListener('keydown',e=>{if(e.key==='Enter')send()});
