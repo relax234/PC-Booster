@@ -65,14 +65,24 @@ const server = http.createServer(async (req, res) => {
           !Number.isSafeInteger(manifest.size) || manifest.size <= 0 || manifest.size > 200 * 1024 * 1024)
         throw new Error("Invalid public update manifest");
       if (url.pathname === "/api/updates/latest") return send(res, 200, manifest);
-      const download = await fetch(site + "/PC-Booster.exe", { signal: AbortSignal.timeout(120000), cache: "no-store" });
+
+      const requestedBase = url.searchParams.get("from") || "";
+      const useDelta = requestedBase && requestedBase === manifest.deltaFromVersion &&
+        typeof manifest.deltaFile === "string" && /^PC-Booster-[0-9.]+-to-[0-9.]+\.xdelta$/.test(manifest.deltaFile) &&
+        typeof manifest.deltaSha256 === "string" && /^[a-f0-9]{64}$/i.test(manifest.deltaSha256) &&
+        Number.isSafeInteger(manifest.deltaSize) && manifest.deltaSize > 0 && manifest.deltaSize < manifest.size;
+      const fileName = useDelta ? manifest.deltaFile : "PC-Booster.exe";
+      const fileSize = useDelta ? manifest.deltaSize : manifest.size;
+      const fileHash = useDelta ? manifest.deltaSha256 : manifest.sha256;
+      const download = await fetch(site + "/" + fileName, { signal: AbortSignal.timeout(120000), cache: "no-store" });
       if (!download.ok || !download.body) throw new Error("Public update binary unavailable");
       res.writeHead(200, {
         "content-type": "application/octet-stream",
-        "content-disposition": 'attachment; filename="PC-Booster.exe"',
-        "content-length": String(manifest.size),
+        "content-disposition": 'attachment; filename="' + fileName + '"',
+        "content-length": String(fileSize),
         "cache-control": "no-store",
-        "x-content-sha256": manifest.sha256.toLowerCase()
+        "x-content-sha256": fileHash.toLowerCase(),
+        "x-update-kind": useDelta ? "delta" : "full"
       });
       const { Readable } = await import("node:stream");
       Readable.fromWeb(download.body).on("error", error => { console.error("Update stream failed:", error?.name); res.destroy(error); }).pipe(res);
