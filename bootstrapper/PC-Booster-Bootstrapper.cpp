@@ -18,7 +18,6 @@
 
 static HWND g_status = nullptr, g_progress = nullptr, g_window = nullptr;
 static const wchar_t* MANIFEST_URL = L"https://raw.githubusercontent.com/relax234/PC-Booster/main/latest.json";
-static const wchar_t* SETUP_URL = L"https://github.com/relax234/PC-Booster/releases/latest/download/PC-Booster-Setup.exe";
 
 static void SetStatus(const std::wstring& s) {
     if (g_status) SetWindowTextW(g_status, s.c_str());
@@ -100,11 +99,15 @@ static bool RunSetup() {
     if (!HttpGet(MANIFEST_URL, manifestBytes, 0, false)) return false;
     std::string manifest = ReadString(manifestBytes);
     std::string expectedHash = JsonString(manifest, "installerSha256");
+    std::string setupUrl = JsonString(manifest, "installerUrl");
     unsigned long long expectedSize = JsonNumber(manifest, "installerSize");
-    if (expectedHash.size() != 64 || expectedSize < 1000000 || expectedSize > 200ull * 1024 * 1024) return false;
+    const std::string urlPrefix = "https://github.com/relax234/PC-Booster/releases/download/desktop-v";
+    if (expectedHash.size() != 64 || expectedSize < 1000000 || expectedSize > 200ull * 1024 * 1024 ||
+        setupUrl.rfind(urlPrefix, 0) != 0 || setupUrl.find("/PC-Booster-Setup.exe") == std::string::npos) return false;
+    std::wstring setupUrlWide(setupUrl.begin(), setupUrl.end());
     std::vector<unsigned char> installer;
     SetStatus(L"Скачиваю установщик PC Booster...");
-    if (!HttpGet(SETUP_URL, installer, expectedSize, true)) return false;
+    if (!HttpGet(setupUrlWide.c_str(), installer, expectedSize, true)) return false;
     std::wstring path = TempSetupPath();
     { std::ofstream f(path, std::ios::binary | std::ios::trunc); if (!f) return false; f.write((const char*)installer.data(), installer.size()); if (!f) return false; }
     SetStatus(L"Проверяю целостность файла...");
