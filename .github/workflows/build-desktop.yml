@@ -13,6 +13,8 @@ concurrency:
   cancel-in-progress: false
 permissions:
   contents: write
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 jobs:
   build:
     runs-on: windows-latest
@@ -23,7 +25,7 @@ jobs:
       - name: Build lightweight native downloader
         shell: pwsh
         run: |
-          cl.exe /nologo /O1 /MT /EHsc /utf-8 /DUNICODE /D_UNICODE /Fe:PC-Booster-Download.exe bootstrapper/PC-Booster-Bootstrapper.cpp /link /SUBSYSTEM:WINDOWS
+          cl.exe /nologo /O1 /MT /EHsc /utf-8 /DUNICODE /D_UNICODE /Fe:PC-Booster-Download.exe bootstrapper/PC-Booster-Bootstrapper.cpp /link /SUBSYSTEM:WINDOWS gdi32.lib
           if ($LASTEXITCODE -ne 0 -or !(Test-Path "PC-Booster-Download.exe")) { throw "Bootstrapper compilation failed" }
           $bootstrapSize = (Get-Item "PC-Booster-Download.exe").Length
           Write-Host ("Bootstrapper size: {0:N2} MB" -f ($bootstrapSize / 1MB))
