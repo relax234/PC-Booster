@@ -1,0 +1,16 @@
+[package]
+name = "pc-booster-helper"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sysinfo = "0.30"
+winreg = "0.52"
+uuid = { version = "1", features = ["v4"] }
+sha2 = "0.10"
+subtle = "2"
+tower-http = { version = "0.5", features = ["cors"] }
