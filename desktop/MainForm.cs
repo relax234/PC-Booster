@@ -234,7 +234,7 @@ public sealed class MainForm : Form
             ulong total=(kernel2-kernel)+(user2-user); double cpu=total==0?0:100.0*(total-(idle2-idle))/total;
             var mem=new MemoryStatus{Length=(uint)Marshal.SizeOf<MemoryStatus>()}; GlobalMemoryStatusEx(ref mem);
             var drive=new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory)!);
-            cpuValue.Text=$"{cpu:0}%"; ramValue.Text=$"{mem.TotalPhys==0?0:(100.0*(mem.TotalPhys-mem.AvailPhys)/mem.TotalPhys):0}%";
+            cpuValue.Text=$"{cpu:0}%"; ramValue.Text=$"{(mem.TotalPhys==0?0:(100.0*(mem.TotalPhys-mem.AvailPhys)/mem.TotalPhys)):0}%";
             diskValue.Text=$"{100.0*(drive.TotalSize-drive.AvailableFreeSpace)/Math.Max(1,drive.TotalSize):0}%";
             osValue.Text=Environment.OSVersion.VersionString;
             scanSummary.Text=$"Устройство: {Environment.MachineName}\nWindows: {Environment.OSVersion.Version}   ·   Потоки CPU: {Environment.ProcessorCount}\nПроверка завершена: {DateTime.Now:T}";
