@@ -33,12 +33,15 @@ jobs:
           $size = (Get-Item "PC-Booster.exe").Length
           Write-Host ("Self-contained EXE size: {0:N2} MB" -f ($size / 1MB))
           if ($size -ge 180MB) { throw "Unexpectedly large EXE: $size bytes" }
+          $hash = (Get-FileHash "PC-Booster.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
+          $manifest = @{ version = $version; sha256 = $hash; size = $size; publishedAt = (Get-Date).ToUniversalTime().ToString("o") } | ConvertTo-Json -Compress
+          Set-Content -Path "latest.json" -Value $manifest -Encoding utf8NoBOM
       - name: Publish EXE to public PC Booster website
         shell: pwsh
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add PC-Booster.exe
+          git add PC-Booster.exe latest.json
           git commit -m "Publish standalone PC Booster executable"
           # Rebase onto any site/source commits pushed after checkout.
           for ($attempt = 1; $attempt -le 4; $attempt++) {
