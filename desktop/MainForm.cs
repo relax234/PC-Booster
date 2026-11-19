@@ -1,6 +1,7 @@
 using Microsoft.Win32;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Net.Http.Json;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -15,7 +16,10 @@ public sealed class MainForm : Form
     private readonly Label pageTitle = new();
     private readonly Label status = new();
     private readonly Dictionary<string, Control> pages = new();
-    private readonly System.Windows.Forms.Timer refreshTimer = new() { Interval = 2500 };
+    private readonly List<Button> navigationButtons = new();
+    private readonly System.Windows.Forms.Timer refreshTimer = new() { Interval = 6000 };
+    private bool statsBusy;
+    private bool processesBusy;
     private readonly HttpClient http = new() { Timeout = TimeSpan.FromMinutes(3) };
     private bool light;
     private string currentPage = "Обзор";
@@ -45,16 +49,18 @@ public sealed class MainForm : Form
 
     public MainForm()
     {
+        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
+        UpdateStyles();
         Text = "PC Booster";
-        MinimumSize = new Size(980,680);
-        Size = new Size(1180,790);
+        MinimumSize = new Size(1020,700);
+        Size = new Size(1240,820);
         StartPosition = FormStartPosition.CenterScreen;
         Font = new Font("Segoe UI",9.5f);
         LoadRollback();
         BuildShell();
         ShowPage("Обзор");
-        RefreshStats();
-        refreshTimer.Tick += (_,_) => RefreshStats();
+        _ = RefreshStatsAsync();
+        refreshTimer.Tick += async (_,_) => await RefreshStatsAsync();
         refreshTimer.Start();
         FormClosed += (_,_) => { refreshTimer.Stop(); http.Dispose(); };
         ApplyTheme();
@@ -62,22 +68,31 @@ public sealed class MainForm : Form
 
     private void BuildShell()
     {
-        sidebar.Dock=DockStyle.Left; sidebar.Width=224; sidebar.Padding=new Padding(16,20,16,16);
-        content.Dock=DockStyle.Fill; content.Padding=new Padding(28,22,28,24);
+        sidebar.Dock=DockStyle.Left; sidebar.Width=236; sidebar.Padding=new Padding(18,22,18,18);
+        content.Dock=DockStyle.Fill; content.Padding=new Padding(30,24,30,26);
         Controls.Add(content); Controls.Add(sidebar);
-        var brand=new Label { Text="✦  PC BOOSTER", AutoSize=false, Height=48, Dock=DockStyle.Top, Font=new Font("Segoe UI",16,FontStyle.Bold), TextAlign=ContentAlignment.MiddleLeft };
+        var brand=new Label { Text="✦  PC BOOSTER", AutoSize=false, Height=54, Dock=DockStyle.Top, Font=new Font("Segoe UI",16,FontStyle.Bold), TextAlign=ContentAlignment.MiddleLeft };
         sidebar.Controls.Add(brand);
-        var nav=new FlowLayoutPanel { Dock=DockStyle.Top, Height=390, FlowDirection=FlowDirection.TopDown, WrapContents=false, Padding=new Padding(0,20,0,0) };
+        var nav=new SmoothFlowPanel { Dock=DockStyle.Top, Height=410, FlowDirection=FlowDirection.TopDown, WrapContents=false, Padding=new Padding(0,22,0,0) };
         sidebar.Controls.Add(nav);
-        foreach(var name in new[]{"Обзор","Проверка ПК","Оптимизация","Процессы","AI-помощник","Настройки"})
+        var navigation = new (string Name,string Caption)[] {
+            ("Обзор","◈   Обзор"),("Проверка ПК","⌕   Проверка ПК"),("Оптимизация","✧   Оптимизация"),
+            ("Процессы","▦   Процессы"),("AI-помощник","✦   AI-помощник"),("Настройки","⚙   Настройки")
+        };
+        foreach(var item in navigation)
         {
-            var b=new Button { Text="   "+name, Width=190, Height=44, TextAlign=ContentAlignment.MiddleLeft, FlatStyle=FlatStyle.Flat, Tag=name, Margin=new Padding(0,0,0,7), Font=new Font("Segoe UI",10,FontStyle.Bold), Cursor=Cursors.Hand };
-            b.FlatAppearance.BorderSize=0; b.Click+=(_,_)=>ShowPage(name); nav.Controls.Add(b);
+            var name=item.Name;
+            var b=new Button { Text=item.Caption, Width=198, Height=48, TextAlign=ContentAlignment.MiddleLeft, FlatStyle=FlatStyle.Flat, Tag=name, Margin=new Padding(0,0,0,8), Padding=new Padding(12,0,8,0), Font=new Font("Segoe UI",10,FontStyle.Bold), Cursor=Cursors.Hand };
+            b.FlatAppearance.BorderSize=0;
+            b.FlatAppearance.MouseOverBackColor=Color.FromArgb(35,61,43);
+            b.Click+=(_,_)=>ShowPage(name);
+            navigationButtons.Add(b);
+            nav.Controls.Add(b);
         }
         var bottom=new Label { Text="WINDOWS 10 / 11\nЛокальное приложение", Dock=DockStyle.Bottom, Height=48, Font=new Font("Segoe UI",8), TextAlign=ContentAlignment.BottomLeft };
         sidebar.Controls.Add(bottom);
-        var top=new Panel { Dock=DockStyle.Top, Height=56 };
-        pageTitle.Dock=DockStyle.Left; pageTitle.AutoSize=true; pageTitle.Font=new Font("Segoe UI",21,FontStyle.Bold);
+        var top=new Panel { Dock=DockStyle.Top, Height=62 };
+        pageTitle.Dock=DockStyle.Left; pageTitle.AutoSize=true; pageTitle.Font=new Font("Segoe UI",22,FontStyle.Bold);
         status.Dock=DockStyle.Right; status.AutoSize=true; status.Text="●  Приложение запущено"; status.TextAlign=ContentAlignment.MiddleRight;
         top.Controls.Add(status); top.Controls.Add(pageTitle); content.Controls.Add(top);
         var body=new Panel { Dock=DockStyle.Fill, Padding=new Padding(0,18,0,0), AutoScroll=false };
@@ -97,14 +112,14 @@ public sealed class MainForm : Form
         stats.Controls.Add(Metric("ОПЕРАТИВНАЯ ПАМЯТЬ",ref ramValue),1,0);
         stats.Controls.Add(Metric("ДИСК WINDOWS",ref diskValue),2,0);
         var info=Card("Система",""); info.Controls.Add(stats);
-        var scan=ActionButton("Проверить компьютер",()=>{RefreshStats();ShowPage("Проверка ПК");});
+        var scan=ActionButton("Проверить компьютер",()=>ShowPage("Проверка ПК"));
         overview.Controls.Add(hero); overview.Controls.Add(info); overview.Controls.Add(scan);
         pages["Обзор"]=overview;
 
         var check=MakePage();
         var scanCard=Card("Диагностика компьютера","Сводка обновляется по нажатию кнопки. Сбор данных выполняется локально.");
         scanSummary=new Label { AutoSize=true, MaximumSize=new Size(780,0), Font=new Font("Segoe UI",10), Padding=new Padding(4,8,4,8) };
-        scanCard.Controls.Add(ActionButton("Запустить быструю проверку",RefreshStats));
+        scanCard.Controls.Add(ActionButton("Запустить быструю проверку",()=>_ = RefreshStatsAsync()));
         scanCard.Controls.Add(scanSummary);
         drivesPanel=new FlowLayoutPanel { Dock=DockStyle.Top, AutoSize=true, FlowDirection=FlowDirection.TopDown, WrapContents=false };
         var drives=Card("Все диски","Свободное и занятое место на подключённых томах."); drives.Controls.Add(drivesPanel);
@@ -119,9 +134,18 @@ public sealed class MainForm : Form
 
         var processes=MakePage();
         var pcard=Card("Запущенные процессы","Список процессов и используемая ими оперативная память. Для завершения используйте Диспетчер задач Windows.");
-        processGrid=new DataGridView { Height=380, ReadOnly=true, AllowUserToAddRows=false, AllowUserToDeleteRows=false, AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill, RowHeadersVisible=false, SelectionMode=DataGridViewSelectionMode.FullRowSelect, BackgroundColor=Color.FromArgb(22,34,27), BorderStyle=BorderStyle.None };
-        processGrid.Columns.Add("name","Процесс"); processGrid.Columns.Add("memory","Память");
-        pcard.Controls.Add(ActionButton("Обновить список",RefreshProcesses)); pcard.Controls.Add(processGrid);
+        processGrid=new DataGridView {
+            Height=420, ReadOnly=true, AllowUserToAddRows=false, AllowUserToDeleteRows=false,
+            AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill, RowHeadersVisible=false,
+            SelectionMode=DataGridViewSelectionMode.FullRowSelect, BackgroundColor=Color.FromArgb(22,34,27),
+            BorderStyle=BorderStyle.None, MultiSelect=false, AllowUserToResizeRows=false,
+            ColumnHeadersHeight=38
+        };
+        processGrid.RowTemplate.Height=32;
+        processGrid.Columns.Add("name","ПРОЦЕСС");
+        processGrid.Columns.Add("memory","ОПЕРАТИВНАЯ ПАМЯТЬ");
+        processGrid.Columns["memory"]!.DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleRight;
+        pcard.Controls.Add(ActionButton("Обновить список",()=>_ = RefreshProcessesAsync())); pcard.Controls.Add(processGrid);
         processes.Controls.Add(pcard); pages["Процессы"]=processes;
 
         var ai=MakePage();
@@ -166,7 +190,7 @@ public sealed class MainForm : Form
 
     private Panel MakePage()
     {
-        var page=new FlowLayoutPanel { Dock=DockStyle.Fill, AutoScroll=true, FlowDirection=FlowDirection.TopDown, WrapContents=false, Padding=new Padding(0,0,12,16), Margin=Padding.Empty, Tag="page" };
+        var page=new SmoothFlowPanel { Dock=DockStyle.Fill, AutoScroll=true, FlowDirection=FlowDirection.TopDown, WrapContents=false, Padding=new Padding(0,0,12,16), Margin=Padding.Empty, Tag="page" };
         page.Resize += (_,_) => ResizePage(page);
         return page;
     }
@@ -217,7 +241,7 @@ public sealed class MainForm : Form
     }
     private Panel Card(string title,string subtitle)
     {
-        var p=new FlowLayoutPanel { FlowDirection=FlowDirection.TopDown, WrapContents=false, AutoSize=true, AutoSizeMode=AutoSizeMode.GrowAndShrink, Width=820, Padding=new Padding(20), Margin=new Padding(0,0,0,16), BackColor=Color.FromArgb(20,31,24), Tag="card" };
+        var p=new CardFlowPanel { FlowDirection=FlowDirection.TopDown, WrapContents=false, AutoSize=true, AutoSizeMode=AutoSizeMode.GrowAndShrink, Width=860, Padding=new Padding(22), Margin=new Padding(0,0,0,18), BackColor=Color.FromArgb(20,31,24), Tag="card" };
         p.ControlAdded += (_,e) => FitCardControl(p,e.Control);
         p.SizeChanged += (_,_) => { foreach(Control child in p.Controls) FitCardControl(p,child); };
         var h=new Label { Text=title, AutoSize=true, Font=new Font("Segoe UI",14,FontStyle.Bold), Margin=new Padding(0,0,0,5) };
@@ -239,7 +263,7 @@ public sealed class MainForm : Form
     }
     private void AddTweakCard(Tweak item)
     {
-        var p=new FlowLayoutPanel { Width=790, AutoSize=true, AutoSizeMode=AutoSizeMode.GrowAndShrink, FlowDirection=FlowDirection.TopDown, WrapContents=false, Padding=new Padding(14), Margin=new Padding(0,0,0,10), BackColor=Color.FromArgb(28,44,34), Tag="card" };
+        var p=new CardFlowPanel { Width=820, AutoSize=true, AutoSizeMode=AutoSizeMode.GrowAndShrink, FlowDirection=FlowDirection.TopDown, WrapContents=false, Padding=new Padding(16), Margin=new Padding(0,0,0,12), BackColor=Color.FromArgb(25,42,31), Tag="card" };
         var name=new Label { Text=item.Name+"  ·  "+item.Category, AutoSize=true, Font=new Font("Segoe UI",10,FontStyle.Bold), Margin=new Padding(0,0,0,5) };
         var desc=new Label { Text=item.Description, AutoSize=true, Margin=new Padding(0,0,0,8) };
         var state=new Label { Text=rollback.ContainsKey(item.Id)?"Применено":"Не применено", AutoSize=true, TextAlign=ContentAlignment.MiddleLeft, Name="state", Padding=new Padding(4,10,8,0) };
@@ -301,55 +325,151 @@ public sealed class MainForm : Form
 
     private void ShowPage(string name)
     {
-        currentPage=name; pageTitle.Text=name;
-        foreach(var pair in pages.Where(p=>p.Key!="__body")) pair.Value.Visible=pair.Key==name;
-        foreach(Control c in sidebar.Controls) if(c is FlowLayoutPanel f) foreach(Control b in f.Controls) if(b is Button btn) { bool active=(string)btn.Tag! == name; btn.BackColor=active?Accent():PanelColor(); btn.ForeColor=TextColor(); }
-        if(name=="Процессы") RefreshProcesses();
-        if(name=="Проверка ПК") RefreshStats();
-        if(name=="Оптимизация") foreach(var item in tweakItems) { var p=tweaksPanel.Controls.Cast<Control>().FirstOrDefault(x=>x.Tag?.ToString()==item.Id); }
-        ApplyTheme();
+        if(!pages.ContainsKey(name)) return;
+        currentPage=name;
+        pageTitle.Text=name;
+        foreach(var pair in pages.Where(p=>p.Key!="__body"))
+            pair.Value.Visible=pair.Key==name;
+        UpdateNavigationVisuals();
+
+        if(name=="Процессы") _ = RefreshProcessesAsync();
+        if(name=="Проверка ПК") _ = RefreshStatsAsync();
     }
-    private void RefreshStats()
+
+    private void UpdateNavigationVisuals()
     {
+        foreach(var button in navigationButtons)
+        {
+            bool active=string.Equals(button.Tag as string,currentPage,StringComparison.Ordinal);
+            button.BackColor=active?Accent():PanelColor();
+            button.ForeColor=active?(light?Color.White:Color.FromArgb(8,29,16)):TextColor();
+            button.FlatAppearance.MouseOverBackColor=light?Color.FromArgb(222,242,228):Color.FromArgb(35,61,43);
+        }
+    }
+
+    private async Task RefreshStatsAsync()
+    {
+        if(statsBusy || IsDisposed || Disposing) return;
+        statsBusy=true;
+        bool includeDrives=currentPage=="Проверка ПК";
         try
         {
-            var sample=ReadCpuTimes();
-            double cpu=0;
-            if(previousCpuSample is { } previous)
-            {
-                ulong total=(sample.kernel-previous.kernel)+(sample.user-previous.user);
-                ulong idle=sample.idle-previous.idle;
-                cpu=total==0?0:Math.Clamp(100.0*(total-idle)/total,0,100);
-            }
-            previousCpuSample=sample;
-            var mem=new MemoryStatus{Length=(uint)Marshal.SizeOf<MemoryStatus>()}; GlobalMemoryStatusEx(ref mem);
-            var drive=new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory)!);
-            cpuValue.Text=$"{cpu:0}%"; ramValue.Text=$"{(mem.TotalPhys==0?0:(100.0*(mem.TotalPhys-mem.AvailPhys)/mem.TotalPhys)):0}%";
-            diskValue.Text=$"{100.0*(drive.TotalSize-drive.AvailableFreeSpace)/Math.Max(1,drive.TotalSize):0}%";
+            var snapshot=await Task.Run(()=>ReadSystemSnapshot(includeDrives));
+            if(IsDisposed || Disposing) return;
+
+            cpuValue.Text=$"{snapshot.Cpu:0}%";
+            ramValue.Text=$"{snapshot.Ram:0}%";
+            diskValue.Text=$"{snapshot.Disk:0}%";
             osValue.Text=Environment.OSVersion.VersionString;
-            scanSummary.Text=$"Устройство: {Environment.MachineName}\nWindows: {Environment.OSVersion.Version}   ·   Потоки CPU: {Environment.ProcessorCount}\nПроверка завершена: {DateTime.Now:T}";
-            drivesPanel.Controls.Clear();
-            foreach(var d in DriveInfo.GetDrives().Where(x=>x.IsReady))
-            {
-                var l=new Label{Width=700,Height=30,Text=$"{d.Name}   {FormatBytes(d.TotalSize-d.AvailableFreeSpace)} свободно из {FormatBytes(d.TotalSize)}",Padding=new Padding(4)};
-                drivesPanel.Controls.Add(l);
-            }
             status.Text="●  Система обновлена";
-        } catch(Exception ex){status.Text="●  Не удалось обновить данные"; scanSummary.Text=ex.Message;}
+
+            if(includeDrives && currentPage=="Проверка ПК")
+            {
+                scanSummary.Text=snapshot.Details;
+                UpdateDriveList(snapshot.Drives);
+            }
+        }
+        catch(Exception ex)
+        {
+            if(!IsDisposed && !Disposing)
+            {
+                status.Text="●  Не удалось обновить данные";
+                if(currentPage=="Проверка ПК") scanSummary.Text=ex.Message;
+            }
+        }
+        finally { statsBusy=false; }
     }
-    private void RefreshProcesses()
+
+    private SystemSnapshot ReadSystemSnapshot(bool includeDrives)
     {
+        var sample=ReadCpuTimes();
+        double cpu=0;
+        if(previousCpuSample is { } previous)
+        {
+            ulong total=(sample.kernel-previous.kernel)+(sample.user-previous.user);
+            ulong idle=sample.idle-previous.idle;
+            cpu=total==0?0:Math.Clamp(100.0*(total-idle)/total,0,100);
+        }
+        previousCpuSample=sample;
+
+        var mem=new MemoryStatus{Length=(uint)Marshal.SizeOf<MemoryStatus>()};
+        if(!GlobalMemoryStatusEx(ref mem)) throw new InvalidOperationException("Не удалось получить данные оперативной памяти.");
+        var systemDrive=new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory)!);
+        double disk=100.0*(systemDrive.TotalSize-systemDrive.AvailableFreeSpace)/Math.Max(1,systemDrive.TotalSize);
+        double ram=mem.TotalPhys==0?0:100.0*(mem.TotalPhys-mem.AvailPhys)/mem.TotalPhys;
+
+        var drives=includeDrives
+            ? DriveInfo.GetDrives().Where(d=>d.DriveType==DriveType.Fixed).Select(d=>
+              {
+                  try { return d.IsReady ? new DriveSnapshot(d.Name,d.TotalSize,d.AvailableFreeSpace) : null; }
+                  catch { return null; }
+              }).Where(d=>d!=null).Cast<DriveSnapshot>().ToArray()
+            : Array.Empty<DriveSnapshot>();
+
+        string details=$"Устройство: {Environment.MachineName}\\nWindows: {Environment.OSVersion.Version}   ·   Потоки CPU: {Environment.ProcessorCount}\\nПроверка завершена: {DateTime.Now:T}";
+        return new SystemSnapshot(cpu,ram,disk,details,drives);
+    }
+
+    private void UpdateDriveList(IReadOnlyList<DriveSnapshot> drives)
+    {
+        var lines=drives.Select(d=>$"{d.Name}   {FormatBytes(d.Free)} свободно из {FormatBytes(d.Total)}").ToArray();
+        if(drivesPanel.Controls.Count==lines.Length &&
+           drivesPanel.Controls.Cast<Control>().Select(c=>c.Text).SequenceEqual(lines)) return;
+
+        drivesPanel.SuspendLayout();
         try
         {
-            processGrid.Rows.Clear();
-            foreach(var p in Process.GetProcesses().OrderByDescending(x=>SafeMemory(x)).Take(100))
-            {
-                try { processGrid.Rows.Add(p.ProcessName,FormatBytes(p.WorkingSet64)); } catch {}
-                finally { p.Dispose(); }
-            }
-        } catch {}
+            drivesPanel.Controls.Clear();
+            foreach(var line in lines)
+                drivesPanel.Controls.Add(new Label{Width=760,Height=34,Text=line,Padding=new Padding(8,7,4,4),Margin=new Padding(0,0,0,5)});
+        }
+        finally { drivesPanel.ResumeLayout(true); }
     }
-    private static long SafeMemory(Process p){try{return p.WorkingSet64;}catch{return 0;}}
+
+    private async Task RefreshProcessesAsync()
+    {
+        if(processesBusy || IsDisposed || Disposing) return;
+        processesBusy=true;
+        try
+        {
+            status.Text="●  Собираю список процессов...";
+            var rows=await Task.Run(ReadProcessSnapshot);
+            if(IsDisposed || Disposing || currentPage!="Процессы") return;
+
+            processGrid.SuspendLayout();
+            try
+            {
+                processGrid.Rows.Clear();
+                var gridRows=rows.Select(item=>
+                {
+                    var row=new DataGridViewRow();
+                    row.CreateCells(processGrid,item.Name,FormatBytes(item.Memory));
+                    return row;
+                }).ToArray();
+                if(gridRows.Length>0) processGrid.Rows.AddRange(gridRows);
+            }
+            finally { processGrid.ResumeLayout(true); }
+            status.Text=$"●  Найдено процессов: {rows.Count}";
+        }
+        catch(Exception ex)
+        {
+            if(!IsDisposed && !Disposing) status.Text="●  Не удалось загрузить процессы: "+ex.Message;
+        }
+        finally { processesBusy=false; }
+    }
+
+    private static List<ProcessSnapshot> ReadProcessSnapshot()
+    {
+        var result=new List<ProcessSnapshot>();
+        foreach(var process in Process.GetProcesses())
+        {
+            try { result.Add(new ProcessSnapshot(process.ProcessName,process.WorkingSet64)); }
+            catch { }
+            finally { process.Dispose(); }
+        }
+        return result.OrderByDescending(p=>p.Memory).Take(100).ToList();
+    }
+
     private async void SendChat()
     {
         var message=chatInput.Text.Trim(); if(message.Length==0)return;
@@ -509,13 +629,13 @@ public sealed class MainForm : Form
     }
     private void ApplyTheme()
     {
-        var bg=light?Color.FromArgb(241,247,243):Color.FromArgb(11,19,14);
+        var bg=light?Color.FromArgb(241,247,243):Color.FromArgb(10,17,13);
         var panel=light?Color.White:Color.FromArgb(20,32,25);
         var text=light?Color.FromArgb(25,43,31):Color.FromArgb(237,246,239);
         var muted=light?Color.FromArgb(92,112,98):Color.FromArgb(155,177,161);
         BackColor=bg; sidebar.BackColor=panel; content.BackColor=bg;
         foreach(Control c in Controls) PaintTree(c,bg,panel,text,muted);
-        foreach(Control c in sidebar.Controls) if(c is FlowLayoutPanel f) foreach(Control b in f.Controls) if(b is Button btn){btn.FlatAppearance.MouseOverBackColor=light?Color.FromArgb(222,242,228):Color.FromArgb(35,61,43); btn.BackColor=(string)btn.Tag! == currentPage?Accent():PanelColor(); btn.ForeColor=(string)btn.Tag! == currentPage?(light?Color.White:Color.FromArgb(7,29,15)):TextColor();}
+        UpdateNavigationVisuals();
         foreach(var pair in pages.Where(p=>p.Key!="__body")) if(pair.Value is FlowLayoutPanel page) ResizePage(page);
     }
     private void PaintTree(Control c,Color bg,Color panel,Color text,Color muted)
@@ -547,6 +667,43 @@ public sealed class MainForm : Form
     [StructLayout(LayoutKind.Sequential)] private struct MemoryStatus{public uint Length,Load;public ulong TotalPhys,AvailPhys,TotalPage,AvailPage,TotalVirtual,AvailVirtual,AvailExtended;}
     [DllImport("kernel32.dll")] private static extern bool GetSystemTimes(out FileTime idle,out FileTime kernel,out FileTime user);
     [DllImport("kernel32.dll")] private static extern bool GlobalMemoryStatusEx(ref MemoryStatus status);
+    private sealed record SystemSnapshot(double Cpu,double Ram,double Disk,string Details,DriveSnapshot[] Drives);
+    private sealed record DriveSnapshot(string Name,long Total,long Free);
+    private sealed record ProcessSnapshot(string Name,long Memory);
+
+    private sealed class SmoothFlowPanel : FlowLayoutPanel
+    {
+        public SmoothFlowPanel()
+        {
+            DoubleBuffered=true;
+            SetStyle(ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.ResizeRedraw,true);
+        }
+    }
+
+    private sealed class CardFlowPanel : FlowLayoutPanel
+    {
+        public CardFlowPanel()
+        {
+            DoubleBuffered=true;
+            SetStyle(ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.ResizeRedraw,true);
+        }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            if(Width<24 || Height<24) return;
+            e.Graphics.SmoothingMode=SmoothingMode.AntiAlias;
+            using var path=new GraphicsPath();
+            int r=10, d=r*2, w=Width-2, h=Height-2;
+            path.AddArc(1,1,d,d,180,90);
+            path.AddArc(w-d,1,d,d,270,90);
+            path.AddArc(w-d,h-d,d,d,0,90);
+            path.AddArc(1,h-d,d,d,90,90);
+            path.CloseFigure();
+            using var pen=new Pen(Color.FromArgb(48,105,233,155),1);
+            e.Graphics.DrawPath(pen,path);
+        }
+    }
+
     private sealed record Tweak(string Id,string Name,string Category,string Description,string Key,string ValueName,RegistryValueKind Kind,object Value);
     private sealed record RegValue(string Key,string Name,bool Existed,string? Value,int Kind);
     private sealed class AiReply{public string? answer{get;set;} public string? error{get;set;}}
