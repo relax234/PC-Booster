@@ -17,6 +17,7 @@
 #pragma comment(lib, "user32.lib")
 
 static HWND g_status = nullptr, g_progress = nullptr, g_window = nullptr;
+static HFONT g_font = nullptr;
 static const wchar_t* MANIFEST_URL = L"https://raw.githubusercontent.com/relax234/PC-Booster/main/latest.json";
 
 static void SetStatus(const std::wstring& s) {
@@ -124,14 +125,17 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM w, LPARAM l) {
     if (m == WM_CREATE) {
         g_status = CreateWindowW(L"STATIC", L"Подготовка...", WS_CHILD | WS_VISIBLE, 24, 24, 430, 28, h, nullptr, nullptr, nullptr);
         g_progress = CreateWindowExW(0, PROGRESS_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 24, 66, 430, 20, h, nullptr, nullptr, nullptr);
+        g_font = CreateFontW(-18, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
+        if (g_font) SendMessageW(g_status, WM_SETFONT, (WPARAM)g_font, TRUE);
         SendMessageW(g_progress, PBM_SETRANGE, 0, MAKELPARAM(0,100));
         return 0;
     }
     if (m == WM_CLOSE) { DestroyWindow(h); return 0; }
-    if (m == WM_DESTROY) { PostQuitMessage(0); return 0; }
+    if (m == WM_DESTROY) { if (g_font) { DeleteObject(g_font); g_font = nullptr; } PostQuitMessage(0); return 0; }
     return DefWindowProcW(h,m,w,l);
 }
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
+    SetProcessDPIAware();
     INITCOMMONCONTROLSEX cc{sizeof(cc), ICC_PROGRESS_CLASS}; InitCommonControlsEx(&cc);
     WNDCLASSW wc{}; wc.lpfnWndProc = WndProc; wc.hInstance = instance; wc.lpszClassName = L"PCBoosterBootstrapper";
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW); wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
