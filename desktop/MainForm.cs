@@ -180,6 +180,7 @@ public sealed class MainForm : Form
         foreach(Control child in page.Controls)
         {
             child.Width=width;
+            child.MaximumSize=new Size(width,0);
             if(child is FlowLayoutPanel card && card.Tag?.ToString()=="card")
                 foreach(Control inner in card.Controls) FitCardControl(card,inner);
         }
@@ -197,6 +198,15 @@ public sealed class MainForm : Form
             flow.AutoSize=true;
             flow.MaximumSize=new Size(width,0);
             flow.Width=width;
+            foreach(Control nested in flow.Controls)
+            {
+                if(nested is FlowLayoutPanel nestedCard && nestedCard.Tag?.ToString()=="card")
+                {
+                    nestedCard.MaximumSize=new Size(width,0);
+                    nestedCard.Width=width;
+                    foreach(Control inner in nestedCard.Controls) FitCardControl(nestedCard,inner);
+                }
+            }
         }
         else
         {
