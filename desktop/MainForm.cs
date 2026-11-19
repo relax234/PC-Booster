@@ -24,7 +24,6 @@ public sealed class MainForm : Form
     private bool light;
     private bool animationsEnabled = true;
     private Button? animationToggleButton;
-    private readonly Dictionary<Button, System.Windows.Forms.Timer> hoverTimers = new();
     private static readonly string appearancePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PCBooster", "appearance.json");
     private string currentPage = "Обзор";
     private Label cpuValue = new(), ramValue = new(), diskValue = new(), osValue = new();
@@ -102,8 +101,10 @@ public sealed class MainForm : Form
         foreach(var item in navigation)
         {
             var name=item.Name;
-            var b=new Button { Text=item.Caption, Width=222, Height=56, TextAlign=ContentAlignment.MiddleLeft, FlatStyle=FlatStyle.Flat, Tag=name, Margin=new Padding(0,0,0,8), Padding=new Padding(16,0,8,0), Font=new Font("Segoe UI",10.5f,FontStyle.Bold), Cursor=Cursors.Hand };
-            b.FlatAppearance.BorderSize=0; b.FlatAppearance.MouseOverBackColor=Color.FromArgb(20,62,99);
+            var b=new Button { Text=item.Caption, Width=222, Height=54, TextAlign=ContentAlignment.MiddleLeft, FlatStyle=FlatStyle.Flat, UseVisualStyleBackColor=false, Tag=name, Margin=new Padding(0,0,0,8), Padding=new Padding(16,0,8,0), Font=new Font("Segoe UI",10.5f,FontStyle.Bold), Cursor=Cursors.Hand };
+            b.FlatAppearance.BorderSize=1; b.FlatAppearance.BorderColor=Color.FromArgb(42,82,57);
+            b.FlatAppearance.MouseOverBackColor=Color.FromArgb(28,67,43);
+            b.FlatAppearance.MouseDownBackColor=Color.FromArgb(42,112,68);
             b.Click+=(_,_)=>ShowPage(name); AttachButtonEffects(b); navigationButtons.Add(b); nav.Controls.Add(b);
         }
         var top=new Panel { Dock=DockStyle.Top, Height=76 };
@@ -202,10 +203,13 @@ public sealed class MainForm : Form
         Panel? animationCard = null;
         void SelectAppearance(bool showAnimations)
         {
-            setcard.Visible = !showAnimations;
-            if (animationCard != null) animationCard.Visible = showAnimations;
-            settings.PerformLayout();
-            settings.Parent?.PerformLayout();
+            settings.SuspendLayout();
+            try
+            {
+                setcard.Visible = !showAnimations;
+                if (animationCard != null) animationCard.Visible = showAnimations;
+            }
+            finally { settings.ResumeLayout(true); }
             if (settings is FlowLayoutPanel settingsPage) ResizePage(settingsPage);
         }
         var appearanceTabs = new FlowLayoutPanel { AutoSize=true, FlowDirection=FlowDirection.LeftToRight, WrapContents=true, Dock=DockStyle.Top, Padding=new Padding(0,4,0,8) };
@@ -275,13 +279,19 @@ public sealed class MainForm : Form
     {
         if (page.IsDisposed || page.ClientSize.Width <= 0) return;
         int width=Math.Max(240,page.ClientSize.Width-page.Padding.Horizontal-SystemInformation.VerticalScrollBarWidth-10);
-        foreach(Control child in page.Controls)
+        page.SuspendLayout();
+        try
         {
-            child.Width=width;
-            child.MaximumSize=new Size(width,0);
-            if(child is FlowLayoutPanel card && card.Tag?.ToString()=="card")
-                foreach(Control inner in card.Controls) FitCardControl(card,inner);
+            foreach(Control child in page.Controls)
+            {
+                if(child.Width!=width) child.Width=width;
+                var maximum=new Size(width,0);
+                if(child.MaximumSize!=maximum) child.MaximumSize=maximum;
+                if(child is FlowLayoutPanel card && card.Tag?.ToString()=="card")
+                    foreach(Control inner in card.Controls) FitCardControl(card,inner);
+            }
         }
+        finally { page.ResumeLayout(true); }
     }
     private void FitCardControl(FlowLayoutPanel card,Control? child)
     {
@@ -335,7 +345,11 @@ public sealed class MainForm : Form
     }
     private Button ActionButton(string text,Action action)
     {
-        var b=new Button { Text=text, Height=42, MinimumSize=new Size(150,42), AutoSize=true, Padding=new Padding(16,5,16,5), FlatStyle=FlatStyle.Flat, Font=new Font("Segoe UI",9.5f,FontStyle.Bold), Margin=new Padding(0,8,10,8), Cursor=Cursors.Hand };
+        var b=new Button { Text=text, Height=44, MinimumSize=new Size(150,44), AutoSize=true, Padding=new Padding(18,6,18,6), FlatStyle=FlatStyle.Flat, UseVisualStyleBackColor=false, Font=new Font("Segoe UI",9.5f,FontStyle.Bold), Margin=new Padding(0,8,10,8), Cursor=Cursors.Hand };
+        b.FlatAppearance.BorderSize=1;
+        b.FlatAppearance.BorderColor=light?Color.FromArgb(30,130,72):Color.FromArgb(76,205,132);
+        b.FlatAppearance.MouseOverBackColor=light?Color.FromArgb(47,158,91):Color.FromArgb(83,204,128);
+        b.FlatAppearance.MouseDownBackColor=light?Color.FromArgb(29,119,67):Color.FromArgb(43,145,87);
         b.Click+=(_,_)=>action(); AttachButtonEffects(b); return b;
     }
     private void AddTweakCard(Tweak item)
@@ -402,22 +416,32 @@ public sealed class MainForm : Form
 
     private void ShowPage(string name)
     {
-        if(!pages.ContainsKey(name)) return;
+        if(!pages.TryGetValue(name,out var activePage)) return;
+        if(string.Equals(currentPage,name,StringComparison.Ordinal))
+        {
+            UpdateNavigationVisuals();
+            return;
+        }
+
+        var previousPage=pages.TryGetValue(currentPage,out var previous)?previous:null;
         currentPage=name;
         pageTitle.Text=name;
         var body=pages["__body"];
-        var activePage = pages[name];
         body.SuspendLayout();
+        activePage.SuspendLayout();
         try
         {
-            foreach(var pair in pages.Where(p=>p.Key!="__body"))
-                pair.Value.Visible=ReferenceEquals(pair.Value,activePage);
+            if(previousPage!=null && !ReferenceEquals(previousPage,activePage))
+                previousPage.Visible=false;
+            activePage.Visible=true;
             activePage.BringToFront();
         }
-        finally { body.ResumeLayout(false); }
-        activePage.PerformLayout();
-        body.PerformLayout();
-        if (activePage is FlowLayoutPanel flowPage) ResizePage(flowPage);
+        finally
+        {
+            activePage.ResumeLayout(true);
+            body.ResumeLayout(true);
+        }
+        if(activePage is FlowLayoutPanel flowPage) ResizePage(flowPage);
         UpdateNavigationVisuals();
 
         if(name=="Процессы") _ = RefreshProcessesAsync();
@@ -429,9 +453,13 @@ public sealed class MainForm : Form
         foreach(var button in navigationButtons)
         {
             bool active=string.Equals(button.Tag as string,currentPage,StringComparison.Ordinal);
+            button.UseVisualStyleBackColor=false;
             button.BackColor=active?Accent():PanelColor();
-            button.ForeColor=active?(light?Color.White:Color.FromArgb(4,24,42)):TextColor();
+            button.ForeColor=active?Color.White:TextColor();
+            button.FlatAppearance.BorderSize=1;
+            button.FlatAppearance.BorderColor=active?Accent(): (light?Color.FromArgb(218,234,222):Color.FromArgb(42,82,57));
             button.FlatAppearance.MouseOverBackColor=light?Color.FromArgb(224,244,230):Color.FromArgb(31,69,46);
+            button.FlatAppearance.MouseDownBackColor=light?Color.FromArgb(195,226,202):Color.FromArgb(42,112,68);
         }
     }
 
@@ -1091,19 +1119,15 @@ public sealed class MainForm : Form
         SaveAppearance();
         if (animationToggleButton != null)
             animationToggleButton.Text = animationsEnabled ? "АНИМАЦИИ: ВКЛЮЧЕНЫ" : "АНИМАЦИИ: ВЫКЛЮЧЕНЫ";
-        foreach (var pair in hoverTimers.ToArray())
-        {
-            pair.Value.Stop();
-            pair.Value.Dispose();
-            hoverTimers.Remove(pair.Key);
-            if (!pair.Key.IsDisposed) pair.Key.BackColor = ButtonBaseColor(pair.Key);
-        }
     }
 
+    // Hover feedback is intentionally immediate: no per-button timers or rapid
+    // repaint loops, which previously caused flicker while navigating.
     private void AttachButtonEffects(Button button)
     {
-        button.MouseEnter += (_, _) => AnimateButtonHover(button, true);
-        button.MouseLeave += (_, _) => AnimateButtonHover(button, false);
+        button.UseVisualStyleBackColor=false;
+        button.MouseEnter += (_, _) => SetButtonHover(button,true);
+        button.MouseLeave += (_, _) => SetButtonHover(button,false);
     }
 
     private Color ButtonBaseColor(Button button)
@@ -1113,47 +1137,20 @@ public sealed class MainForm : Form
         return string.Equals(button.Tag as string, currentPage, StringComparison.Ordinal) ? Accent() : PanelColor();
     }
 
-    private void AnimateButtonHover(Button button, bool entering)
+    private void SetButtonHover(Button button,bool entering)
     {
-        if (button.IsDisposed) return;
-        var target = entering
-            ? (navigationButtons.Contains(button)
-                ? (light ? Color.FromArgb(224, 244, 230) : Color.FromArgb(31, 69, 46))
-                : (light ? Color.FromArgb(47, 158, 91) : Color.FromArgb(91, 211, 139)))
-            : ButtonBaseColor(button);
-        if (!animationsEnabled)
+        if(button.IsDisposed) return;
+        if(!entering)
         {
-            button.BackColor = target;
+            button.BackColor=ButtonBaseColor(button);
             return;
         }
-        if (hoverTimers.TryGetValue(button, out var old))
-        {
-            old.Stop();
-            old.Dispose();
-            hoverTimers.Remove(button);
-        }
-        var start = button.BackColor;
-        int step = 0;
-        var timer = new System.Windows.Forms.Timer { Interval = 16 };
-        hoverTimers[button] = timer;
-        timer.Tick += (_, _) =>
-        {
-            if (button.IsDisposed)
-            {
-                timer.Stop(); timer.Dispose(); hoverTimers.Remove(button); return;
-            }
-            step++;
-            float t = Math.Min(1f, step / 7f);
-            button.BackColor = Color.FromArgb(
-                (int)(start.R + (target.R - start.R) * t),
-                (int)(start.G + (target.G - start.G) * t),
-                (int)(start.B + (target.B - start.B) * t));
-            if (step >= 7)
-            {
-                timer.Stop(); timer.Dispose(); hoverTimers.Remove(button);
-            }
-        };
-        timer.Start();
+        bool nav=navigationButtons.Contains(button);
+        if(nav && string.Equals(button.Tag as string,currentPage,StringComparison.Ordinal)) return;
+        if(!animationsEnabled) return;
+        button.BackColor=nav
+            ? (light?Color.FromArgb(224,244,230):Color.FromArgb(31,69,46))
+            : (light?Color.FromArgb(47,158,91):Color.FromArgb(83,204,128));
     }
 
     private void ApplyTheme()
@@ -1177,10 +1174,20 @@ public sealed class MainForm : Form
         }
         if(c is Button b)
         {
-            bool navigation=b.Parent==sidebar.Controls.Cast<Control>().FirstOrDefault(x=>x is FlowLayoutPanel);
-            b.BackColor=navigation?PanelColor():Accent();
-            b.ForeColor=navigation?TextColor():(light?Color.White:Color.FromArgb(4,24,42));
-            b.FlatAppearance.BorderSize=0;
+            bool navigation=navigationButtons.Contains(b);
+            b.UseVisualStyleBackColor=false;
+            b.BackColor=navigation
+                ? (string.Equals(b.Tag as string,currentPage,StringComparison.Ordinal)?Accent():PanelColor())
+                : Accent();
+            b.ForeColor=navigation?TextColor():Color.White;
+            b.FlatAppearance.BorderSize=1;
+            b.FlatAppearance.BorderColor=navigation
+                ? (string.Equals(b.Tag as string,currentPage,StringComparison.Ordinal)?Accent():(light?Color.FromArgb(218,234,222):Color.FromArgb(42,82,57)))
+                : Accent();
+            b.FlatAppearance.MouseOverBackColor=navigation
+                ? (light?Color.FromArgb(224,244,230):Color.FromArgb(31,69,46))
+                : (light?Color.FromArgb(47,158,91):Color.FromArgb(83,204,128));
+            b.FlatAppearance.MouseDownBackColor=light?Color.FromArgb(29,119,67):Color.FromArgb(42,112,68);
         }
         if(c is TextBox or RichTextBox){c.BackColor=panel;c.ForeColor=text;}
         if(c is Label label && label.Parent?.Tag?.ToString()=="card") label.ForeColor=text;
