@@ -72,13 +72,76 @@ footer{padding-top:22px}
 .tweaks-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}.tweaks-heading h2{margin:0}.tweaks-note{margin:10px 0 13px;color:var(--muted);font-size:11px;line-height:1.55}.tweaks-list{display:grid;gap:9px}.tweak-item{padding:11px;border:1px solid var(--line);background:#0e1912;border-radius:12px}.tweak-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.tweak-name{font-size:12px;font-weight:750;color:#e4f1e7}.tweak-category{font-size:10px;color:var(--green);white-space:nowrap}.tweak-desc{font-size:11px;color:var(--muted);line-height:1.5;margin:5px 0 9px}.tweak-actions{display:flex;gap:7px}.tweak-actions button{flex:1;padding:8px 9px;border-radius:9px;border:1px solid #41654a;background:#193021;color:#dff8e6;font-size:11px;font-weight:700}.tweak-actions button.rollback{background:#211d16;border-color:#655437;color:#f2d8a3}.tweak-actions button:disabled{opacity:.5;cursor:wait}.tweak-state{font-size:10px;color:#8ee8a8;margin-top:7px}.tweaks-empty{padding:12px;border:1px dashed #38513e;border-radius:11px;color:var(--muted);font-size:11px;line-height:1.5}
 
 
+
+/* Theme switcher and centered Windows tweaks */
+.header-actions{display:flex;align-items:center;gap:10px}
+.theme-toggle{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--text);font-size:12px;font-weight:700;white-space:nowrap;transition:.18s}
+.theme-toggle:hover{border-color:var(--green);transform:translateY(-1px)}
+.theme-icon{font-size:15px;color:var(--green)}
+.tweaks-panel{margin:22px auto 0;width:100%;padding:22px 24px!important;overflow:visible}
+.tweaks-heading h2{font-size:19px;margin:0}
+.tweaks-subtitle{margin:4px 0 0;color:var(--muted);font-size:12px}
+.tweaks-heading .tag{flex-shrink:0}
+.tweaks-note{font-size:12px;margin:13px 0 17px;max-width:780px}
+.tweaks-list{grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.tweak-item{padding:16px;min-width:0;border-radius:15px;background:var(--panel2);border-color:var(--line);display:flex;flex-direction:column;min-height:175px;transition:transform .18s,border-color .18s,box-shadow .18s}
+.tweak-item:hover{transform:translateY(-2px);border-color:var(--green);box-shadow:0 8px 22px #00000012}
+.tweak-top{align-items:center;gap:10px;flex-wrap:wrap}
+.tweak-name{font-size:14px;color:var(--text);line-height:1.4}
+.tweak-category{font-size:10px;font-weight:700;padding:4px 8px;border-radius:99px;background:color-mix(in srgb,var(--green) 13%,transparent);color:var(--green);white-space:normal}
+.tweak-desc{font-size:12px;color:var(--muted);line-height:1.6;margin:9px 0 14px;flex:1}
+.tweak-actions{gap:9px;margin-top:auto}
+.tweak-actions button{padding:10px 12px;border-radius:10px;background:var(--panel);border-color:var(--line);color:var(--text);font-size:12px;transition:.15s}
+.tweak-actions button:first-child{background:var(--green);border-color:var(--green);color:#082012}
+.tweak-actions button:first-child:hover{filter:brightness(1.06)}
+.tweak-actions button.rollback{background:transparent;border-color:#c79b4a;color:var(--text)}
+.tweak-state{font-size:11px;margin-top:10px;color:var(--green)}
+.tweaks-empty{grid-column:1/-1;padding:18px;border:1px dashed var(--line);border-radius:13px;text-align:center;color:var(--muted);font-size:12px}
+body[data-theme="light"]{color-scheme:light;--bg:#f3f7f4;--panel:#ffffff;--panel2:#f6faf7;--line:#d9e5dc;--green:#159653;--mint:#176b3d;--text:#17251c;--muted:#607366;--danger:#b42318;background:radial-gradient(ellipse at 12% 0%,rgba(75,190,119,.13),transparent 34rem),radial-gradient(ellipse at 92% 16%,rgba(83,154,113,.10),transparent 28rem),var(--bg)}
+body[data-theme="light"] .logo{background:linear-gradient(145deg,#e0f5e7,#f5fff8);border-color:#b9dfc5;color:#168347;box-shadow:0 5px 18px #247c4318}
+body[data-theme="light"] .status{background:#fff;border-color:var(--line);color:var(--muted)}
+body[data-theme="light"] .panel{background:linear-gradient(155deg,#fff,#f9fcfa);border-color:var(--line);box-shadow:0 12px 35px #244b3210}
+body[data-theme="light"] .panel-head{background:#f5faf6;border-color:var(--line)}
+body[data-theme="light"] .tag{background:#e8f7ed;border-color:#c8e8d2;color:#187a43}
+body[data-theme="light"] .welcome{background:linear-gradient(135deg,#eff9f2,#e8f5ec);border-color:#cfe6d5;color:#263d2d}
+body[data-theme="light"] .welcome strong{color:#176b3d}
+body[data-theme="light"] .welcome p{color:#526b59}
+body[data-theme="light"] .bubble.assistant{background:#f3f8f4;border-color:#dce9df;color:#263b2c}
+body[data-theme="light"] .bubble.user{background:linear-gradient(135deg,#238e50,#14753d);border-color:#1c8749;color:#fff}
+body[data-theme="light"] .composer{background:#f8fbf9;border-color:var(--line)}
+body[data-theme="light"] .input-row textarea{background:#fff;color:var(--text);border-color:#cbdccf}
+body[data-theme="light"] .input-row textarea::placeholder{color:#87988c}
+body[data-theme="light"] .input-row textarea:focus{border-color:#28a45e;box-shadow:0 0 0 3px #15965318}
+body[data-theme="light"] .send{background:linear-gradient(135deg,#35c875,#159653);color:#fff;box-shadow:0 5px 18px #15965320}
+body[data-theme="light"] .helper-icon{background:#e6f5eb;color:#168347}
+body[data-theme="light"] .helper-btn{background:#eff8f1;border-color:#c4dfcb;color:#176b3d}
+body[data-theme="light"] .helper-download{background:linear-gradient(135deg,#39cf7a,#159653);color:#fff}
+body[data-theme="light"] .helper-state{color:#95651a}
+body[data-theme="light"] .helper-steps{color:#687b6d}
+body[data-theme="light"] .helper-steps b{color:#304d38}
+body[data-theme="light"] .metric{background:#f5faf6;border-color:#e0eae2}
+body[data-theme="light"] .metric small{color:#718477}
+body[data-theme="light"] .quick button{background:#f5faf6;color:#294432;border-color:#dce8df}
+body[data-theme="light"] .quick button:hover,body[data-theme="light"] .helper-btn:hover{background:#eaf6ed;border-color:#75c58f}
+body[data-theme="light"] .tweak-item{background:#f7fbf8;border-color:#dce8df;box-shadow:0 3px 12px #244b3208}
+body[data-theme="light"] .tweak-name{color:#1b3022}
+body[data-theme="light"] .tweak-desc{color:#607366}
+body[data-theme="light"] .tweak-actions button{background:#fff;border-color:#cddfd1;color:#294432}
+body[data-theme="light"] .tweak-actions button:first-child{background:linear-gradient(135deg,#35c875,#159653);border-color:#159653;color:#fff}
+body[data-theme="light"] .tweak-actions button.rollback{background:#fff8eb;border-color:#e6c98f;color:#805915}
+body[data-theme="light"] .tweaks-empty{background:#f8fbf9;border-color:#cbdccf}
+body[data-theme="light"] footer{color:#718477}
+@media(max-width:900px){.tweaks-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){header{align-items:flex-start}.header-actions{flex-direction:column-reverse;align-items:flex-end;gap:7px}.theme-toggle{padding:7px 10px}.tweaks-panel{padding:17px!important;margin-top:16px}.tweaks-list{grid-template-columns:1fr}.tweak-item{min-height:0}.tweaks-heading{align-items:flex-start}}
+@media(max-width:390px){#themeLabel{display:none}.theme-toggle{width:36px;height:36px;justify-content:center;padding:0}.header-actions{gap:6px}}
+
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
  <div class="brand"><div class="logo">⌁</div><div>PC Booster AI<small>Простой помощник для Windows</small></div></div>
- <div class="status"><i class="dot" id="apiDot"></i><span id="apiStatus">Подключаем ИИ…</span></div>
+ <div class="header-actions"><button class="theme-toggle" id="themeToggle" type="button" aria-label="Переключить тему"><span class="theme-icon" id="themeIcon">☀</span><span id="themeLabel">Светлая тема</span></button><div class="status"><i class="dot" id="apiDot"></i><span id="apiStatus">Подключаем ИИ…</span></div></div>
 </header>
 <section class="intro">
  <h1>Разберёмся с твоим компьютером</h1>
@@ -112,11 +175,7 @@ footer{padding-top:22px}
     <div class="metric"><span>Windows</span><b id="osValue">—</b><small id="osSub">Нет данных</small></div>
    </div>
   </section>
-  <section class="panel tweaks-panel">
-   <div class="tweaks-heading"><h2>Твики Windows</h2><span class="tag">RUST ENGINE</span></div>
-   <p class="tweaks-note">Обратимые настройки. Изменения выполняются только после нажатия кнопки и сохраняются для отката.</p>
-   <div id="tweaksList" class="tweaks-list"><div class="tweaks-empty">Подключи Helper, чтобы загрузить список твиков.</div></div>
-  </section>
+
   <section class="panel">
    <h2>Быстрые вопросы</h2>
    <div class="quick">
@@ -127,9 +186,24 @@ footer{padding-top:22px}
   </section>
  </aside>
 </main>
+  <section class="panel tweaks-panel">
+   <div class="tweaks-heading"><div><h2>Твики Windows</h2><p class="tweaks-subtitle">Настрой производительность и удобство Windows</p></div><span class="tag">RUST ENGINE</span></div>
+   <p class="tweaks-note">Обратимые настройки. Каждый твик применяется отдельно после подтверждения. Исходные значения сохраняются для отката.</p>
+   <div id="tweaksList" class="tweaks-list"><div class="tweaks-empty">Подключи Helper, чтобы загрузить список твиков.</div></div>
+  </section>
 <footer>PC Booster AI · Безопасные рекомендации для Windows 10/11</footer>
 </div>
 <script>
+
+// Theme preference: saved on this device.
+const themeToggle=document.getElementById('themeToggle');
+const themeIcon=document.getElementById('themeIcon');
+const themeLabel=document.getElementById('themeLabel');
+function applyTheme(theme){document.body.dataset.theme=theme;const light=theme==='light';themeIcon.textContent=light?'☾':'☀';themeLabel.textContent=light?'Тёмная тема':'Светлая тема';themeToggle.setAttribute('aria-label',light?'Включить тёмную тему':'Включить светлую тему');document.querySelector('meta[name="theme-color"]').content=light?'#f3f7f4':'#0b120f';}
+let savedTheme='dark';try{savedTheme=localStorage.getItem('pc-booster-theme')||'dark';}catch{}
+applyTheme(savedTheme==='light'?'light':'dark');
+themeToggle.addEventListener('click',()=>{const next=document.body.dataset.theme==='light'?'dark':'light';applyTheme(next);try{localStorage.setItem('pc-booster-theme',next);}catch{}});
+
 const API_URL='https://pc-booster-ai-api.onrender.com';
 const messagesEl=document.getElementById('messages');
 const input=document.getElementById('messageInput');
