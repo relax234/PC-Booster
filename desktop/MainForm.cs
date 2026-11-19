@@ -26,6 +26,7 @@ public sealed class MainForm : Form
     private TextBox chatInput = new();
     private readonly List<(string role,string content)> chatHistory = new();
     private readonly Dictionary<string,List<RegValue>> rollback = new();
+    private (ulong idle, ulong kernel, ulong user)? previousCpuSample;
     private readonly string rollbackPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"PCBooster","desktop-rollback.json");
     private static readonly Tweak[] tweakItems = {
         new("show_file_extensions","Показывать расширения файлов","Проводник","Показывает .exe, .txt и другие расширения.",@"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced","HideFileExt",RegistryValueKind.DWord,0),
@@ -230,8 +231,15 @@ public sealed class MainForm : Form
     {
         try
         {
-            var (idle,kernel,user)=ReadCpuTimes(); Thread.Sleep(80); var (idle2,kernel2,user2)=ReadCpuTimes();
-            ulong total=(kernel2-kernel)+(user2-user); double cpu=total==0?0:100.0*(total-(idle2-idle))/total;
+            var sample=ReadCpuTimes();
+            double cpu=0;
+            if(previousCpuSample is { } previous)
+            {
+                ulong total=(sample.kernel-previous.kernel)+(sample.user-previous.user);
+                ulong idle=sample.idle-previous.idle;
+                cpu=total==0?0:Math.Clamp(100.0*(total-idle)/total,0,100);
+            }
+            previousCpuSample=sample;
             var mem=new MemoryStatus{Length=(uint)Marshal.SizeOf<MemoryStatus>()}; GlobalMemoryStatusEx(ref mem);
             var drive=new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory)!);
             cpuValue.Text=$"{cpu:0}%"; ramValue.Text=$"{(mem.TotalPhys==0?0:(100.0*(mem.TotalPhys-mem.AvailPhys)/mem.TotalPhys)):0}%";
