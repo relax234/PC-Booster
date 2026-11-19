@@ -1,6 +1,6 @@
 #define MyAppName "PC Booster"
 #ifndef AppVersion
-  #define AppVersion "0.4.4"
+  #define AppVersion "0.4.6"
 #endif
 #define MyAppPublisher "PC Booster"
 #define MyAppExeName "PC-Booster.exe"
@@ -14,8 +14,8 @@ DefaultDirName={autopf}\PC Booster
 DefaultGroupName=PC Booster
 DisableProgramGroupPage=yes
 PrivilegesRequired=admin
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..
 OutputBaseFilename=PC-Booster-Setup
 Compression=lzma2/ultra64
