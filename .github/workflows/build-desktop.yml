@@ -6,6 +6,9 @@ on:
       - "desktop/**"
       - ".github/workflows/build-desktop.yml"
   workflow_dispatch:
+concurrency:
+  group: pc-booster-desktop-build
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
