@@ -374,8 +374,14 @@ public sealed class MainForm : Form
         if(!pages.ContainsKey(name)) return;
         currentPage=name;
         pageTitle.Text=name;
-        foreach(var pair in pages.Where(p=>p.Key!="__body"))
-            pair.Value.Visible=pair.Key==name;
+        var body=pages["__body"];
+        body.SuspendLayout();
+        try
+        {
+            foreach(var pair in pages.Where(p=>p.Key!="__body"))
+                pair.Value.Visible=pair.Key==name;
+        }
+        finally { body.ResumeLayout(true); }
         UpdateNavigationVisuals();
 
         if(name=="Процессы") _ = RefreshProcessesAsync();
@@ -452,7 +458,7 @@ public sealed class MainForm : Form
               }).Where(d=>d!=null).Cast<DriveSnapshot>().ToArray()
             : Array.Empty<DriveSnapshot>();
 
-        string details=$"Устройство: {Environment.MachineName}\\nWindows: {Environment.OSVersion.Version}   ·   Потоки CPU: {Environment.ProcessorCount}\\nПроверка завершена: {DateTime.Now:T}";
+        string details=$"Устройство: {Environment.MachineName}\nWindows: {Environment.OSVersion.Version}   ·   Потоки CPU: {Environment.ProcessorCount}\nПроверка завершена: {DateTime.Now:T}";
         return new SystemSnapshot(cpu,ram,disk,details,drives);
     }
 
