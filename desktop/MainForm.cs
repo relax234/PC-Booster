@@ -557,6 +557,7 @@ public sealed class MainForm : Form
                 readyPath = null;
             }
 
+            long transferSize = pendingUpdateTransferSize;
             if (readyPath == null)
             {
                 var newExePath = Path.Combine(Path.GetTempPath(),
@@ -578,7 +579,7 @@ public sealed class MainForm : Form
                         manifest.deltaSha256.Length == 64 &&
                         File.Exists(Path.Combine(AppContext.BaseDirectory, "xdelta3.exe"));
 
-                    long transferSize = 0;
+                    transferSize = 0;
                     var ready = false;
                     if (canDelta)
                     {
