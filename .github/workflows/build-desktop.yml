@@ -115,7 +115,33 @@ jobs:
           $manifest = Get-Content "latest.json" -Raw | ConvertFrom-Json
           $manifest | Add-Member -NotePropertyName installerSize -NotePropertyValue $setupSize -Force
           $manifest | Add-Member -NotePropertyName installerSha256 -NotePropertyValue $setupHash -Force
+          $appVersion = [string](([xml](Get-Content "desktop/PCBooster.Desktop.csproj")).Project.PropertyGroup.Version)
+          $installerUrl = "https://github.com/relax234/PC-Booster/releases/download/desktop-v$appVersion/PC-Booster-Setup.exe"
+          $manifest | Add-Member -NotePropertyName installerUrl -NotePropertyValue $installerUrl -Force
           $manifest | ConvertTo-Json -Compress | Set-Content -Path "latest.json" -Encoding utf8NoBOM
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $publishedManifest = Get-Content "latest.json" -Raw | ConvertFrom-Json
+          $version = [string]$publishedManifest.version
+          $tag = "desktop-v$version"
+          $title = "PC Booster Desktop $version"
+          $notes = "Небольшой загрузчик Windows x64 (до 10 МБ) скачивает и проверяет установщик. Приложение устанавливается автономно с .NET; встроенное автообновление загружает только изменения, если доступен delta-патч."
+          gh release view $tag --repo ${{ github.repository }} *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo ${{ github.repository }} --title $title --notes $notes
+            if ($LASTEXITCODE -ne 0) { throw "Could not create GitHub release" }
+          }
+          gh release upload $tag "PC-Booster-Download.exe" "PC-Booster-Setup.exe" "PC-Booster.exe" --repo ${{ github.repository }} --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Could not upload bootstrapper, installer and EXE" }
+          $manifest = Get-Content "latest.json" -Raw | ConvertFrom-Json
+          if ($manifest.deltaFile) {
+            gh release upload $tag $manifest.deltaFile --repo ${{ github.repository }} --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Could not upload delta patch" }
+          }
+          gh release edit $tag --repo ${{ github.repository }} --title $title --notes $notes
       - name: Publish installer, EXE and manifest to website
         shell: pwsh
         run: |
@@ -152,26 +178,3 @@ jobs:
             if ($attempt -eq 5) { throw "Could not publish release files after 5 attempts" }
             Start-Sleep -Seconds 3
           }
-      - name: Publish GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: pwsh
-        run: |
-          $publishedManifest = Get-Content "latest.json" -Raw | ConvertFrom-Json
-          $version = [string]$publishedManifest.version
-          $tag = "desktop-v$version"
-          $title = "PC Booster Desktop $version"
-          $notes = "Небольшой загрузчик Windows x64 (до 10 МБ) скачивает и проверяет установщик. Приложение устанавливается автономно с .NET; встроенное автообновление загружает только изменения, если доступен delta-патч."
-          gh release view $tag --repo ${{ github.repository }} *> $null
-          if ($LASTEXITCODE -ne 0) {
-            gh release create $tag --repo ${{ github.repository }} --title $title --notes $notes
-            if ($LASTEXITCODE -ne 0) { throw "Could not create GitHub release" }
-          }
-          gh release upload $tag "PC-Booster-Download.exe" "PC-Booster-Setup.exe" "PC-Booster.exe" --repo ${{ github.repository }} --clobber
-          if ($LASTEXITCODE -ne 0) { throw "Could not upload bootstrapper, installer and EXE" }
-          $manifest = Get-Content "latest.json" -Raw | ConvertFrom-Json
-          if ($manifest.deltaFile) {
-            gh release upload $tag $manifest.deltaFile --repo ${{ github.repository }} --clobber
-            if ($LASTEXITCODE -ne 0) { throw "Could not upload delta patch" }
-          }
-          gh release edit $tag --repo ${{ github.repository }} --title $title --notes $notes
