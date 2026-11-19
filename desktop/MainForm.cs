@@ -80,10 +80,11 @@ public sealed class MainForm : Form
         pageTitle.Dock=DockStyle.Left; pageTitle.AutoSize=true; pageTitle.Font=new Font("Segoe UI",21,FontStyle.Bold);
         status.Dock=DockStyle.Right; status.AutoSize=true; status.Text="●  Приложение запущено"; status.TextAlign=ContentAlignment.MiddleRight;
         top.Controls.Add(status); top.Controls.Add(pageTitle); content.Controls.Add(top);
-        var body=new Panel { Dock=DockStyle.Fill, Padding=new Padding(0,18,0,0), AutoScroll=true };
+        var body=new Panel { Dock=DockStyle.Fill, Padding=new Padding(0,18,0,0), AutoScroll=false };
         content.Controls.Add(body); body.BringToFront(); top.BringToFront();
         pages["__body"]=body;
         BuildPages(body);
+        body.Resize += (_,_) => ResizePages(body);
     }
 
     private void BuildPages(Panel body)
@@ -97,17 +98,17 @@ public sealed class MainForm : Form
         stats.Controls.Add(Metric("ДИСК WINDOWS",ref diskValue),2,0);
         var info=Card("Система",""); info.Controls.Add(stats);
         var scan=ActionButton("Проверить компьютер",()=>{RefreshStats();ShowPage("Проверка ПК");});
-        overview.Controls.Add(scan); overview.Controls.Add(info); overview.Controls.Add(hero);
+        overview.Controls.Add(hero); overview.Controls.Add(info); overview.Controls.Add(scan);
         pages["Обзор"]=overview;
 
         var check=MakePage();
         var scanCard=Card("Диагностика компьютера","Сводка обновляется по нажатию кнопки. Сбор данных выполняется локально.");
-        scanSummary=new Label { Dock=DockStyle.Top, AutoSize=false, Height=70, Font=new Font("Segoe UI",10), Padding=new Padding(4,8,4,8) };
+        scanSummary=new Label { AutoSize=true, MaximumSize=new Size(780,0), Font=new Font("Segoe UI",10), Padding=new Padding(4,8,4,8) };
         scanCard.Controls.Add(ActionButton("Запустить быструю проверку",RefreshStats));
         scanCard.Controls.Add(scanSummary);
         drivesPanel=new FlowLayoutPanel { Dock=DockStyle.Top, AutoSize=true, FlowDirection=FlowDirection.TopDown, WrapContents=false };
         var drives=Card("Все диски","Свободное и занятое место на подключённых томах."); drives.Controls.Add(drivesPanel);
-        check.Controls.Add(drives); check.Controls.Add(scanCard); pages["Проверка ПК"]=check;
+        check.Controls.Add(scanCard); check.Controls.Add(drives); pages["Проверка ПК"]=check;
 
         var tweaks=MakePage();
         var tcard=Card("Безопасные настройки Windows","Каждый твик изменяет только известный параметр текущего пользователя. Исходное значение сохраняется для отмены.");
@@ -118,15 +119,15 @@ public sealed class MainForm : Form
 
         var processes=MakePage();
         var pcard=Card("Запущенные процессы","Список процессов и используемая ими оперативная память. Для завершения используйте Диспетчер задач Windows.");
-        processGrid=new DataGridView { Dock=DockStyle.Top, Height=440, ReadOnly=true, AllowUserToAddRows=false, AllowUserToDeleteRows=false, AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill, RowHeadersVisible=false, SelectionMode=DataGridViewSelectionMode.FullRowSelect, BackgroundColor=Color.FromArgb(22,34,27), BorderStyle=BorderStyle.None };
+        processGrid=new DataGridView { Height=380, ReadOnly=true, AllowUserToAddRows=false, AllowUserToDeleteRows=false, AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill, RowHeadersVisible=false, SelectionMode=DataGridViewSelectionMode.FullRowSelect, BackgroundColor=Color.FromArgb(22,34,27), BorderStyle=BorderStyle.None };
         processGrid.Columns.Add("name","Процесс"); processGrid.Columns.Add("memory","Память");
         pcard.Controls.Add(ActionButton("Обновить список",RefreshProcesses)); pcard.Controls.Add(processGrid);
         processes.Controls.Add(pcard); pages["Процессы"]=processes;
 
         var ai=MakePage();
         var aicard=Card("PC Booster AI","Задавай вопросы по Windows, производительности и настройкам компьютера.");
-        chatLog=new RichTextBox { Dock=DockStyle.Top, Height=390, ReadOnly=true, BorderStyle=BorderStyle.None, Font=new Font("Segoe UI",10), Text="PC Booster AI\nПривет! Напиши, с чем помочь.\n\n" };
-        var row=new Panel { Dock=DockStyle.Top, Height=52, Padding=new Padding(0,8,0,0) };
+        chatLog=new RichTextBox { Height=330, ReadOnly=true, BorderStyle=BorderStyle.None, Font=new Font("Segoe UI",10), Text="PC Booster AI\nПривет! Напиши, с чем помочь.\n\n" };
+        var row=new Panel { Height=52, Padding=new Padding(0,8,0,0) };
         chatInput=new TextBox { Dock=DockStyle.Fill, PlaceholderText="Напиши вопрос..." };
         var send=ActionButton("Отправить",SendChat); send.Dock=DockStyle.Right; send.Width=120;
         row.Controls.Add(chatInput); row.Controls.Add(send);
@@ -135,9 +136,9 @@ public sealed class MainForm : Form
         var settings=MakePage();
         var updateCard=Card("Обновление приложения","Проверяй новые версии PC Booster прямо здесь. Если обновление найдено, программа проверит файл, скачает его и перезапустится.");
         updateCard.Padding=new Padding(22);
-        var updateVersionLabel=new Label { Dock=DockStyle.Top, Height=30, Text="УСТАНОВЛЕННАЯ ВЕРСИЯ  ·  "+CurrentVersion, Font=new Font("Segoe UI",9,FontStyle.Bold), Padding=new Padding(4,6,4,4) };
-        updateStatusLabel=new Label { Dock=DockStyle.Top, Height=54, Padding=new Padding(4,10,4,4), Text="Нажми «Проверить обновления», чтобы проверить наличие новой версии.", AutoEllipsis=true };
-        var updateActions=new FlowLayoutPanel { Dock=DockStyle.Top, Height=58, FlowDirection=FlowDirection.LeftToRight, WrapContents=true, Padding=new Padding(0,6,0,0) };
+        var updateVersionLabel=new Label { AutoSize=true, Text="УСТАНОВЛЕННАЯ ВЕРСИЯ  ·  "+CurrentVersion, Font=new Font("Segoe UI",9,FontStyle.Bold), Padding=new Padding(4,6,4,4) };
+        updateStatusLabel=new Label { AutoSize=true, MaximumSize=new Size(780,0), Padding=new Padding(4,10,4,8), Text="Нажми «Проверить обновления», чтобы проверить наличие новой версии." };
+        var updateActions=new FlowLayoutPanel { AutoSize=true, AutoSizeMode=AutoSizeMode.GrowAndShrink, FlowDirection=FlowDirection.LeftToRight, WrapContents=true, Padding=new Padding(0,6,0,0), Margin=new Padding(0,4,0,4) };
         var checkUpdateButton=ActionButton("ПРОВЕРИТЬ ОБНОВЛЕНИЯ",()=>CheckForUpdates());
         checkUpdateButton.Height=42;
         installUpdateButton=ActionButton("СКАЧАТЬ И УСТАНОВИТЬ",InstallUpdate);
@@ -163,38 +164,82 @@ public sealed class MainForm : Form
         foreach(var pair in pages.Where(p=>p.Key!="__body")) { var c=pair.Value; c.Dock=DockStyle.Fill; c.Visible=false; body.Controls.Add(c); }
     }
 
-    private Panel MakePage()=>new(){Dock=DockStyle.Fill,AutoScroll=true,Padding=new Padding(0,0,6,8)};
+    private Panel MakePage()
+    {
+        var page=new FlowLayoutPanel { Dock=DockStyle.Fill, AutoScroll=true, FlowDirection=FlowDirection.TopDown, WrapContents=false, Padding=new Padding(0,0,12,16), Margin=Padding.Empty, Tag="page" };
+        page.Resize += (_,_) => ResizePage(page);
+        return page;
+    }
+    private void ResizePages(Panel body)
+    {
+        foreach(var pair in pages.Where(p=>p.Key!="__body")) if(pair.Value is FlowLayoutPanel page) ResizePage(page);
+    }
+    private void ResizePage(FlowLayoutPanel page)
+    {
+        int width=Math.Max(360,page.ClientSize.Width-34);
+        foreach(Control child in page.Controls)
+        {
+            child.Width=width;
+            if(child is FlowLayoutPanel card && card.Tag?.ToString()=="card")
+                foreach(Control inner in card.Controls) FitCardControl(card,inner);
+        }
+    }
+    private void FitCardControl(FlowLayoutPanel card,Control child)
+    {
+        int width=Math.Max(280,card.ClientSize.Width-card.Padding.Horizontal-8);
+        if(child is Label label)
+        {
+            label.AutoSize=true;
+            label.MaximumSize=new Size(width,0);
+        }
+        else if(child is FlowLayoutPanel flow)
+        {
+            flow.AutoSize=true;
+            flow.MaximumSize=new Size(width,0);
+            flow.Width=width;
+        }
+        else
+        {
+            child.Width=width;
+            if(child is Panel panel) panel.MaximumSize=new Size(width,0);
+        }
+    }
     private Panel Card(string title,string subtitle)
     {
-        var p=new Panel { Dock=DockStyle.Top, AutoSize=true, Padding=new Padding(18), Margin=new Padding(0,0,0,14), MinimumSize=new Size(500,90) };
-        var h=new Label { Text=title, Dock=DockStyle.Top, Height=32, Font=new Font("Segoe UI",14,FontStyle.Bold) };
+        var p=new FlowLayoutPanel { FlowDirection=FlowDirection.TopDown, WrapContents=false, AutoSize=true, AutoSizeMode=AutoSizeMode.GrowAndShrink, Width=820, Padding=new Padding(20), Margin=new Padding(0,0,0,16), BackColor=Color.FromArgb(20,31,24), Tag="card" };
+        p.ControlAdded += (_,e) => FitCardControl(p,e.Control);
+        p.SizeChanged += (_,_) => { foreach(Control child in p.Controls) FitCardControl(p,child); };
+        var h=new Label { Text=title, AutoSize=true, Font=new Font("Segoe UI",14,FontStyle.Bold), Margin=new Padding(0,0,0,5) };
         p.Controls.Add(h);
-        if(!string.IsNullOrWhiteSpace(subtitle)) p.Controls.Add(new Label { Text=subtitle, Dock=DockStyle.Top, Height=42, Font=new Font("Segoe UI",9.5f) });
+        if(!string.IsNullOrWhiteSpace(subtitle)) p.Controls.Add(new Label { Text=subtitle, AutoSize=true, Font=new Font("Segoe UI",9.5f), ForeColor=Color.FromArgb(155,177,161), Margin=new Padding(0,0,0,12) });
         return p;
     }
     private Control Metric(string caption,ref Label value)
     {
-        var p=new Panel { Dock=DockStyle.Fill, Padding=new Padding(12), Margin=new Padding(0,0,10,0) };
+        var p=new Panel { Dock=DockStyle.Fill, Padding=new Padding(12), Margin=new Padding(0,0,10,0), BackColor=Color.FromArgb(28,44,34), Tag="metric" };
         p.Controls.Add(value); value.Dock=DockStyle.Bottom; value.Height=42; value.Font=new Font("Segoe UI",19,FontStyle.Bold);
         p.Controls.Add(new Label { Text=caption, Dock=DockStyle.Top, Height=26, Font=new Font("Segoe UI",8,FontStyle.Bold) });
         return p;
     }
     private Button ActionButton(string text,Action action)
     {
-        var b=new Button { Text=text, Height=40, AutoSize=true, Padding=new Padding(14,4,14,4), FlatStyle=FlatStyle.Flat, Font=new Font("Segoe UI",9.5f,FontStyle.Bold), Margin=new Padding(0,8,8,8), Cursor=Cursors.Hand };
+        var b=new Button { Text=text, Height=42, MinimumSize=new Size(150,42), AutoSize=true, Padding=new Padding(16,5,16,5), FlatStyle=FlatStyle.Flat, Font=new Font("Segoe UI",9.5f,FontStyle.Bold), Margin=new Padding(0,8,10,8), Cursor=Cursors.Hand };
         b.Click+=(_,_)=>action(); return b;
     }
     private void AddTweakCard(Tweak item)
     {
-        var p=new Panel { Width=760, Height=112, Padding=new Padding(12), Margin=new Padding(0,0,0,9) };
-        var name=new Label { Text=item.Name+"  ·  "+item.Category, Dock=DockStyle.Top, Height=26, Font=new Font("Segoe UI",10,FontStyle.Bold) };
-        var desc=new Label { Text=item.Description, Dock=DockStyle.Top, Height=28 };
-        var state=new Label { Text=rollback.ContainsKey(item.Id)?"Применено":"Не применено", Dock=DockStyle.Left, Width=150, TextAlign=ContentAlignment.MiddleLeft, Name="state" };
+        var p=new FlowLayoutPanel { Width=790, AutoSize=true, AutoSizeMode=AutoSizeMode.GrowAndShrink, FlowDirection=FlowDirection.TopDown, WrapContents=false, Padding=new Padding(14), Margin=new Padding(0,0,0,10), BackColor=Color.FromArgb(28,44,34), Tag="card" };
+        var name=new Label { Text=item.Name+"  ·  "+item.Category, AutoSize=true, Font=new Font("Segoe UI",10,FontStyle.Bold), Margin=new Padding(0,0,0,5) };
+        var desc=new Label { Text=item.Description, AutoSize=true, Margin=new Padding(0,0,0,8) };
+        var state=new Label { Text=rollback.ContainsKey(item.Id)?"Применено":"Не применено", AutoSize=true, TextAlign=ContentAlignment.MiddleLeft, Name="state", Padding=new Padding(4,10,8,0) };
         var undo=ActionButton("Отменить",()=>RollbackTweak(item,p));
         var apply=ActionButton("Применить",()=>ApplyTweak(item,p));
-        var actions=new FlowLayoutPanel { Dock=DockStyle.Bottom, Height=42, FlowDirection=FlowDirection.LeftToRight };
+        var actions=new FlowLayoutPanel { AutoSize=true, FlowDirection=FlowDirection.LeftToRight, WrapContents=true, Margin=Padding.Empty };
         actions.Controls.Add(apply); actions.Controls.Add(undo); actions.Controls.Add(state);
-        p.Controls.Add(actions); p.Controls.Add(desc); p.Controls.Add(name); tweaksPanel.Controls.Add(p);
+        p.Controls.Add(name); p.Controls.Add(desc); p.Controls.Add(actions);
+        p.ControlAdded += (_,e) => FitCardControl(p,e.Control);
+        p.SizeChanged += (_,_) => { foreach(Control child in p.Controls) FitCardControl(p,child); };
+        tweaksPanel.Controls.Add(p);
         UpdateTweakCard(item,p);
     }
     private void UpdateTweakCard(Tweak item,Panel card)
@@ -390,20 +435,31 @@ public sealed class MainForm : Form
     private sealed class UpdateManifest { public string version { get; set; } = ""; public string tag { get; set; } = ""; public string sha256 { get; set; } = ""; public long size { get; set; } public DateTime? publishedAt { get; set; } }
     private void ApplyTheme()
     {
-        var bg=light?Color.FromArgb(242,247,243):Color.FromArgb(10,17,13);
-        var panel=light?Color.White:Color.FromArgb(20,31,24);
+        var bg=light?Color.FromArgb(241,247,243):Color.FromArgb(11,19,14);
+        var panel=light?Color.White:Color.FromArgb(20,32,25);
         var text=light?Color.FromArgb(25,43,31):Color.FromArgb(237,246,239);
         var muted=light?Color.FromArgb(92,112,98):Color.FromArgb(155,177,161);
         BackColor=bg; sidebar.BackColor=panel; content.BackColor=bg;
         foreach(Control c in Controls) PaintTree(c,bg,panel,text,muted);
-        foreach(Control c in sidebar.Controls) if(c is FlowLayoutPanel f) foreach(Control b in f.Controls) if(b is Button btn){btn.FlatAppearance.MouseOverBackColor=light?Color.FromArgb(222,242,228):Color.FromArgb(35,61,43);}
+        foreach(Control c in sidebar.Controls) if(c is FlowLayoutPanel f) foreach(Control b in f.Controls) if(b is Button btn){btn.FlatAppearance.MouseOverBackColor=light?Color.FromArgb(222,242,228):Color.FromArgb(35,61,43); btn.BackColor=(string)btn.Tag! == currentPage?Accent():PanelColor(); btn.ForeColor=(string)btn.Tag! == currentPage?(light?Color.White:Color.FromArgb(7,29,15)):TextColor();}
+        foreach(var pair in pages.Where(p=>p.Key!="__body")) if(pair.Value is FlowLayoutPanel page) ResizePage(page);
     }
     private void PaintTree(Control c,Color bg,Color panel,Color text,Color muted)
     {
         c.ForeColor=text;
-        if(c is Panel p){p.BackColor=p.Parent==sidebar?panel:(p.BorderStyle==BorderStyle.FixedSingle?panel:bg);}
-        if(c is Button b){b.BackColor=Accent();b.ForeColor=light?Color.White:Color.FromArgb(7,29,15);b.FlatAppearance.BorderSize=0;}
+        if(c is Panel p)
+        {
+            p.BackColor=p.Tag?.ToString()=="card" || p.Tag?.ToString()=="metric" ? (light?Color.White:Color.FromArgb(22,36,27)) : p.Parent==sidebar?panel:bg;
+        }
+        if(c is Button b)
+        {
+            bool navigation=b.Parent==sidebar.Controls.Cast<Control>().FirstOrDefault(x=>x is FlowLayoutPanel);
+            b.BackColor=navigation?PanelColor():Accent();
+            b.ForeColor=navigation?TextColor():(light?Color.White:Color.FromArgb(7,29,15));
+            b.FlatAppearance.BorderSize=0;
+        }
         if(c is TextBox or RichTextBox){c.BackColor=panel;c.ForeColor=text;}
+        if(c is Label label && label.Parent?.Tag?.ToString()=="card") label.ForeColor=text;
         if(c is DataGridView g){g.BackgroundColor=panel;g.DefaultCellStyle.BackColor=panel;g.DefaultCellStyle.ForeColor=text;g.ColumnHeadersDefaultCellStyle.BackColor=Accent();g.ColumnHeadersDefaultCellStyle.ForeColor=Color.Black;g.EnableHeadersVisualStyles=false;}
         foreach(Control child in c.Controls) PaintTree(child,bg,panel,text,muted);
     }
