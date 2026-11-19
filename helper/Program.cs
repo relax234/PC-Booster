@@ -4,8 +4,13 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
 
-const string AllowedOrigin = "https://pc-booster-ai.onrender.com";
-const int Port = 47831;
+internal static class Program
+{
+private const string AllowedOrigin = "https://pc-booster-ai.onrender.com";
+private const int Port = 47831;
+
+public static async Task Main()
+{
 var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(24)).TrimEnd('=').Replace('+','-').Replace('/','_');
 using var listener = new HttpListener();
 listener.Prefixes.Add($"http://127.0.0.1:{Port}/");
@@ -89,7 +94,7 @@ while (listener.IsListening)
     });
 }
 
-static async Task WriteJson(HttpListenerResponse response, object value)
+private static async Task WriteJson(HttpListenerResponse response, object value)
 {
     response.ContentType = "application/json; charset=utf-8";
     var bytes = JsonSerializer.SerializeToUtf8Bytes(value);
@@ -98,11 +103,12 @@ static async Task WriteJson(HttpListenerResponse response, object value)
 }
 
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-struct MemoryStatusEx
+private struct MemoryStatusEx
 {
     public uint Length, MemoryLoad;
     public ulong TotalPhys, AvailPhys, TotalPageFile, AvailPageFile, TotalVirtual, AvailVirtual, AvailExtendedVirtual;
 }
 [DllImport("kernel32.dll", SetLastError = true)]
 [return: MarshalAs(UnmanagedType.Bool)]
-static extern bool GlobalMemoryStatusEx(ref MemoryStatusEx buffer);
+private static extern bool GlobalMemoryStatusEx(ref MemoryStatusEx buffer);
+}
