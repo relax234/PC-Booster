@@ -144,6 +144,36 @@ body[data-theme="light"] footer{color:#718477}
 .helper-detail-empty{font-size:11px;line-height:1.5;color:var(--muted);padding:10px;border:1px dashed var(--line);border-radius:10px}
 .helper-btn:disabled{opacity:.65;cursor:wait}
 
+
+/* PC Booster desktop-app style scan dashboard */
+.app-layout{display:grid;gap:20px}
+.scan-hero{position:relative;display:flex;align-items:center;justify-content:space-between;gap:25px;padding:clamp(24px,4vw,42px);min-height:290px;overflow:hidden;background:radial-gradient(ellipse at 88% 50%,rgba(73,205,119,.18),transparent 22rem),linear-gradient(130deg,var(--panel),var(--panel2))}
+.scan-copy{position:relative;z-index:1;max-width:690px}
+.scan-copy h2{font-size:clamp(27px,4vw,39px);letter-spacing:-.04em;margin:15px 0 8px}
+.scan-copy>p{color:var(--muted);font-size:14px;line-height:1.7;max-width:630px;margin:0}
+.scan-actions{display:flex;gap:11px;align-items:center;flex-wrap:wrap;margin-top:23px}
+.scan-button{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:50px;padding:0 21px;border:0;border-radius:13px;background:linear-gradient(135deg,#8af0ad,#4ed17e);color:#092012;font-weight:850;font-size:14px;box-shadow:0 8px 24px #45c87528;transition:.18s}
+.scan-button span{font-size:21px}.scan-button:hover{transform:translateY(-2px);filter:brightness(1.05)}.scan-button:disabled{opacity:.65;cursor:wait;transform:none}
+.scan-actions .helper-download{margin:0;min-height:50px;padding:0 16px;background:var(--panel2);border:1px solid var(--line);color:var(--text)}
+.scan-state{display:flex;align-items:center;gap:9px;margin-top:18px;color:var(--muted);font-size:12px}
+.install-note{margin-top:10px!important;font-size:11px!important;color:var(--muted)!important}
+.scan-art{position:relative;flex:0 0 220px;width:220px;height:220px;display:grid;place-items:center}
+.scan-ring{width:154px;height:154px;border:2px solid #62df8d;border-radius:50%;display:grid;place-items:center;box-shadow:0 0 0 13px #63df8d12,0 0 45px #63df8d22,inset 0 0 35px #63df8d12;color:var(--green);font-size:34px;font-weight:900;letter-spacing:-.06em}
+.scan-orbit{position:absolute;border:1px solid #63df8d35;border-radius:50%;inset:9px;transform:rotate(-25deg) scaleY(.48)}
+.orbit-b{inset:22px;transform:rotate(55deg) scaleY(.48)}
+.results-section{padding:4px 0 0}
+.section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}
+.section-title h2{font-size:19px;margin:0}.section-title p{font-size:12px;color:var(--muted);margin:3px 0 0}
+.results-section .metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.results-section .metric{padding:17px;background:var(--panel);border-color:var(--line);border-radius:15px}
+.results-section .metric span{font-size:12px}.results-section .metric b{font-size:20px}
+.assistant-panel{display:flex;flex-direction:column;min-height:440px}
+.assistant-panel .messages{min-height:180px;max-height:350px}
+@media(max-width:850px){.scan-art{flex-basis:155px;width:155px;height:155px}.scan-ring{width:120px;height:120px}.results-section .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.scan-hero{padding:22px;min-height:0}.scan-art{display:none}.scan-actions{align-items:stretch;flex-direction:column}.scan-button,.scan-actions .helper-download{width:100%}.results-section .metrics{grid-template-columns:1fr 1fr}.results-section .metric{padding:13px}.section-title{align-items:flex-start}.section-title .tag{font-size:9px}}
+body[data-theme="light"] .scan-hero{background:radial-gradient(ellipse at 88% 50%,rgba(73,190,111,.12),transparent 22rem),linear-gradient(130deg,#fff,#f1f9f3)}
+body[data-theme="light"] .scan-actions .helper-download{background:#fff;color:#176b3d;border-color:#d3e6d8}
+body[data-theme="light"] .scan-ring{border-color:#159653;box-shadow:0 0 0 13px #15965312,0 0 45px #15965318,inset 0 0 35px #15965312;color:#159653}
 </style>
 </head>
 <body>
@@ -156,44 +186,42 @@ body[data-theme="light"] footer{color:#718477}
  <h1>Разберёмся с твоим компьютером</h1>
  <p>Понятные ответы без сложных терминов. Подскажу, что делать, и проведу по шагам.</p>
 </section>
-<main class="grid">
- <section class="panel chat-panel">
-  <div class="panel-head"><h2>Чат с AI-помощником</h2><span class="tag">PC BOOSTER AI</span></div>
+<main class="app-layout">
+ <section class="panel scan-hero">
+  <div class="scan-copy">
+   <span class="tag">PC BOOSTER · WINDOWS</span>
+   <h2>Проверка компьютера</h2>
+   <p>Нажми одну кнопку — Helper проверит оборудование, память, накопители и запущенные процессы. Никаких команд и ручного ввода кодов.</p>
+   <div class="scan-actions">
+    <button class="scan-button" id="helperBtn" type="button"><span>⌕</span> Разрешить проверку ПК</button>
+    <a class="helper-download" href="https://github.com/relax234/PC-Booster/releases/download/helper-v0.2.0/PC.Booster.Helper.exe">↓ Установить PC Booster Helper (.EXE)</a>
+   </div>
+   <div class="scan-state" id="helperStatus"><i class="dot" id="helperDot"></i><span>Ожидает подключения приложения</span></div>
+   <p class="install-note">Первый запуск: скачай и открой Helper один раз. После этого вернись сюда и нажми «Разрешить проверку ПК». Вводить команды или коды не нужно.</p>
+  </div>
+  <div class="scan-art" aria-hidden="true"><div class="scan-ring"><span>PC</span></div><div class="scan-orbit orbit-a"></div><div class="scan-orbit orbit-b"></div></div>
+ </section>
+ <section class="results-section">
+  <div class="section-title"><div><h2>Результаты проверки</h2><p>Характеристики и состояние твоего компьютера</p></div><span class="tag" id="scanBadge">ОЖИДАНИЕ</span></div>
+  <div class="metrics">
+   <div class="metric"><span>Процессор</span><b id="cpuValue">—</b><small id="cpuSub">Нет данных</small></div>
+   <div class="metric"><span>Оперативная память</span><b id="ramValue">—</b><small id="ramSub">Нет данных</small></div>
+   <div class="metric"><span>Системный диск C:</span><b id="diskValue">—</b><small id="diskSub">Нет данных</small></div>
+   <div class="metric"><span>Операционная система</span><b id="osValue">—</b><small id="osSub">Нет данных</small></div>
+  </div>
+  <div class="helper-details" id="helperDetails"><div class="helper-detail-empty">Подключи Helper и запусти проверку — здесь появятся найденные диски и процессы.</div></div>
+ </section>
+ <section class="panel assistant-panel">
+  <div class="panel-head"><h2>AI-помощник</h2><span class="tag">ПОМОЩЬ ПО WINDOWS</span></div>
   <div class="messages" id="messages" aria-live="polite">
-   <div class="welcome"><strong>Привет! Я твой помощник по Windows 👋</strong><p>Опиши проблему своими словами. Я объясню простым языком, предложу безопасное решение и распишу действия по шагам. Не нужно знать технические термины.</p></div>
+   <div class="welcome"><strong>Привет! Я помогу разобраться с компьютером 👋</strong><p>После проверки можешь спросить, что означают результаты и как безопасно улучшить работу Windows.</p></div>
   </div>
   <div class="typing" id="typing" hidden>ИИ готовит ответ…</div>
   <form class="composer" id="chatForm">
-   <div class="input-row"><textarea id="messageInput" rows="1" maxlength="2000" placeholder="Напиши сообщение… (Enter — отправить, Shift+Enter — новая строка)" required></textarea><button class="send" id="sendBtn" type="submit">Отправить</button></div>
-   <div class="hint">Не отправляй пароли и личные данные. ИИ может ошибаться — важные действия сначала проверяй.</div>
+   <div class="input-row"><textarea id="messageInput" rows="1" maxlength="2000" placeholder="Задай вопрос о компьютере…" required></textarea><button class="send" id="sendBtn" type="submit">Отправить</button></div>
+   <div class="hint">Не отправляй пароли и личные данные.</div>
   </form>
  </section>
- <aside class="side">
-  <section class="panel">
-   <h2>Подключение к ПК</h2>
-   <div class="helper-row"><div class="helper-icon">⌘</div><div><strong>Windows Helper</strong><small>Полная проверка Windows и оборудования</small></div></div>
-   <div class="helper-state" id="helperStatus">Helper не запущен · запусти приложение на этом ПК</div>
-   <a class="helper-download" href="https://github.com/relax234/PC-Booster/releases/download/helper-v0.2.0/PC.Booster.Helper.exe">↓ Скачать Helper (.EXE)</a><button class="helper-btn" id="helperBtn" type="button">Разрешить проверку ПК</button><p class="helper-steps"><b>Как подключить:</b><br>1. Скачай PC Booster Helper.exe.<br>2. Запусти скачанный файл.<br>3. Запусти приложение. Нажми «Разрешить проверку ПК» на сайте и подтверди запрос в окне Windows.</p>
-  </section>
-  <section class="panel">
-   <h2>Характеристики ПК</h2>
-   <div class="metrics">
-    <div class="metric"><span>Процессор</span><b id="cpuValue">—</b><small id="cpuSub">Нет данных</small></div>
-    <div class="metric"><span>ОЗУ</span><b id="ramValue">—</b><small id="ramSub">Нет данных</small></div>
-    <div class="metric"><span>Диск C:</span><b id="diskValue">—</b><small id="diskSub">Нет данных</small></div>
-    <div class="metric"><span>Windows</span><b id="osValue">—</b><small id="osSub">Нет данных</small></div>
-   </div>
-  </section>
-
-  <section class="panel">
-   <h2>Быстрые вопросы</h2>
-   <div class="quick">
-    <button type="button">Как ускорить Windows 11 безопасно?</button>
-    <button type="button">Как освободить место на диске C:?</button>
-    <button type="button">Почему компьютер тормозит?</button>
-   </div>
-  </section>
- </aside>
 </main>
   <section class="panel tweaks-panel">
    <div class="tweaks-heading"><div><h2>Твики Windows</h2><p class="tweaks-subtitle">Настрой производительность и удобство Windows</p></div><span class="tag">RUST ENGINE</span></div>
@@ -230,7 +258,7 @@ async function helperRequest(path,options={}){if(!helperToken)throw new Error('�
 async function loadTweaks(){const list=document.getElementById('tweaksList');list.innerHTML='<div class="tweaks-empty">Загружаю твики…</div>';try{const data=await helperRequest('/tweaks');list.replaceChildren();for(const item of data.items||[]){const card=document.createElement('div');card.className='tweak-item';const top=document.createElement('div');top.className='tweak-top';const name=document.createElement('div');name.className='tweak-name';name.textContent=item.name;const category=document.createElement('div');category.className='tweak-category';category.textContent=item.category;top.append(name,category);const desc=document.createElement('p');desc.className='tweak-desc';desc.textContent=item.description;const actions=document.createElement('div');actions.className='tweak-actions';const apply=document.createElement('button');apply.textContent=item.applied?'Уже применён':'Применить';apply.disabled=item.applied;apply.addEventListener('click',()=>applyTweak(item.id,apply));actions.append(apply);if(item.applied){const rollback=document.createElement('button');rollback.className='rollback';rollback.textContent='Откатить';rollback.addEventListener('click',()=>rollbackTweak(item.id,rollback));actions.append(rollback);}const state=document.createElement('div');state.className='tweak-state';state.textContent=item.applied?'Изменение сохранено · доступен откат':'Не применён';card.append(top,desc,actions,state);list.append(card);}if(!list.children.length)list.textContent='Список твиков пуст.';}catch(error){list.textContent=error.message||'Не удалось загрузить твики.';}}
 async function applyTweak(id,button){const ok=window.confirm('Применить этот твик Windows? Исходные значения будут сохранены, чтобы можно было выполнить откат.');if(!ok)return;button.disabled=true;try{const result=await helperRequest('/tweaks/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});addBubble('Изменение выполнено: '+result.message,'assistant');await loadTweaks();}catch(error){window.alert(error.message||'Не удалось применить твик.');button.disabled=false;}}
 async function rollbackTweak(id,button){if(!window.confirm('Вернуть исходные настройки Windows для этого твика?'))return;button.disabled=true;try{const result=await helperRequest('/tweaks/rollback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});addBubble('Откат выполнен: '+result.message,'assistant');await loadTweaks();}catch(error){window.alert(error.message||'Не удалось выполнить откат.');button.disabled=false;}}
-async function connectHelper(){const status=document.getElementById('helperStatus'),button=document.getElementById('helperBtn');status.textContent='Ожидаем разрешение Windows…';button.disabled=true;button.textContent='Проверяем…';try{if(!helperToken){const response=await fetch('http://127.0.0.1:47831/request-access',{method:'POST',cache:'no-store'});const access=await response.json().catch(()=>({}));if(!response.ok)throw new Error(access.error||'Не удалось получить разрешение. Убедись, что Helper 0.2.0 запущен.');helperToken=access.token;}const health=await helperRequest('/health');if(health.engine!=='rust'||health.version!=='0.2.0')throw new Error('Нужен PC Booster Helper 0.2.0 на Rust.');const d=await helperRequest('/diagnostics');document.getElementById('cpuValue').textContent=d.cpu.logicalProcessors+' потоков';document.getElementById('cpuSub').textContent=d.cpu.name||'Процессор';document.getElementById('ramValue').textContent=d.memory.usedPercent+'%';document.getElementById('ramSub').textContent=(d.memory.availableBytes/1073741824).toFixed(1)+' ГБ свободно';document.getElementById('diskValue').textContent=d.systemDrive.usedPercent+'% занято';document.getElementById('diskSub').textContent=(d.systemDrive.freeBytes/1073741824).toFixed(1)+' ГБ свободно';document.getElementById('osValue').textContent='Windows';document.getElementById('osSub').textContent=d.os;const details=document.getElementById('helperDetails');details.replaceChildren();const summary=document.createElement('div');summary.className='helper-scan-summary';summary.textContent='Проверка завершена · найдено процессов: '+(d.processCount||0);details.append(summary);const diskTitle=document.createElement('div');diskTitle.className='helper-detail-title';diskTitle.textContent='Все обнаруженные диски';details.append(diskTitle);for(const disk of d.disks||[]){const row=document.createElement('div');row.className='helper-detail-row';const name=document.createElement('span');name.textContent=(disk.mount||'Диск')+' · '+(disk.name||'');const value=document.createElement('b');value.textContent=(disk.usedPercent||0)+'% занято · '+(disk.freeBytes/1073741824).toFixed(1)+' ГБ свободно';row.append(name,value);details.append(row);}const processTitle=document.createElement('div');processTitle.className='helper-detail-title';processTitle.textContent='Программы с наибольшим использованием памяти';details.append(processTitle);for(const proc of d.topProcesses||[]){const row=document.createElement('div');row.className='helper-detail-row';const name=document.createElement('span');name.textContent=proc.name;const value=document.createElement('b');value.textContent=(proc.memoryBytes/1048576).toFixed(0)+' МБ';row.append(name,value);details.append(row);}status.textContent='Проверка завершена · Rust Helper 0.2.0';button.textContent='Проверить ещё раз';await loadTweaks();}catch(e){helperToken=null;status.textContent=e.message||'Helper не найден. Запусти приложение на этом ПК.';document.getElementById('tweaksList').textContent='Нет соединения с Helper.';}finally{button.disabled=false;}}
+async function connectHelper(){const status=document.getElementById('helperStatus'),button=document.getElementById('helperBtn');status.textContent='Ожидаем подтверждение в окне Helper…';document.getElementById('scanBadge').textContent='ПРОВЕРЯЕМ';button.disabled=true;button.textContent='Проверяем…';try{if(!helperToken){const response=await fetch('http://127.0.0.1:47831/request-access',{method:'POST',cache:'no-store'});const access=await response.json().catch(()=>({}));if(!response.ok)throw new Error(access.error||'Не удалось получить разрешение. Убедись, что Helper 0.2.0 запущен.');helperToken=access.token;}const health=await helperRequest('/health');if(health.engine!=='rust'||health.version!=='0.2.0')throw new Error('Нужен PC Booster Helper 0.2.0 на Rust.');const d=await helperRequest('/diagnostics');document.getElementById('cpuValue').textContent=d.cpu.logicalProcessors+' потоков';document.getElementById('cpuSub').textContent=d.cpu.name||'Процессор';document.getElementById('ramValue').textContent=d.memory.usedPercent+'%';document.getElementById('ramSub').textContent=(d.memory.availableBytes/1073741824).toFixed(1)+' ГБ свободно';document.getElementById('diskValue').textContent=d.systemDrive.usedPercent+'% занято';document.getElementById('diskSub').textContent=(d.systemDrive.freeBytes/1073741824).toFixed(1)+' ГБ свободно';document.getElementById('osValue').textContent='Windows';document.getElementById('osSub').textContent=d.os;const details=document.getElementById('helperDetails');details.replaceChildren();const summary=document.createElement('div');summary.className='helper-scan-summary';summary.textContent='Проверка завершена · найдено процессов: '+(d.processCount||0);details.append(summary);const diskTitle=document.createElement('div');diskTitle.className='helper-detail-title';diskTitle.textContent='Все обнаруженные диски';details.append(diskTitle);for(const disk of d.disks||[]){const row=document.createElement('div');row.className='helper-detail-row';const name=document.createElement('span');name.textContent=(disk.mount||'Диск')+' · '+(disk.name||'');const value=document.createElement('b');value.textContent=(disk.usedPercent||0)+'% занято · '+(disk.freeBytes/1073741824).toFixed(1)+' ГБ свободно';row.append(name,value);details.append(row);}const processTitle=document.createElement('div');processTitle.className='helper-detail-title';processTitle.textContent='Программы с наибольшим использованием памяти';details.append(processTitle);for(const proc of d.topProcesses||[]){const row=document.createElement('div');row.className='helper-detail-row';const name=document.createElement('span');name.textContent=proc.name;const value=document.createElement('b');value.textContent=(proc.memoryBytes/1048576).toFixed(0)+' МБ';row.append(name,value);details.append(row);}status.innerHTML='<i class="dot online"></i><span>Проверка завершена · Rust Helper 0.2.0</span>';document.getElementById('scanBadge').textContent='ПРОВЕРКА ГОТОВА';button.textContent='Проверить ещё раз';await loadTweaks();}catch(e){helperToken=null;status.textContent=e.message||'Helper не найден. Сначала установи и открой приложение.';document.getElementById('scanBadge').textContent='НЕТ ПОДКЛЮЧЕНИЯ';document.getElementById('tweaksList').textContent='Нет соединения с Helper.';}finally{button.disabled=false;}}
 document.getElementById('helperBtn').addEventListener('click',connectHelper);
 checkAI();
 </script>
