@@ -1,5 +1,4 @@
-#define UNICODE
-#define _UNICODE
+#define NOMINMAX
 #include <windows.h>
 #include <wininet.h>
 #include <bcrypt.h>
