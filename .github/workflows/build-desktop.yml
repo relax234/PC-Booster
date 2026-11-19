@@ -44,18 +44,27 @@ jobs:
       - name: Publish EXE to public PC Booster website
         shell: pwsh
         run: |
+          $exeBackup = Join-Path $env:RUNNER_TEMP "PC-Booster.exe"
+          $manifestBackup = Join-Path $env:RUNNER_TEMP "latest.json"
+          Copy-Item "PC-Booster.exe" $exeBackup -Force
+          Copy-Item "latest.json" $manifestBackup -Force
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add PC-Booster.exe latest.json
-          git commit -m "Publish standalone PC Booster executable"
-          # Rebase onto any site/source commits pushed after checkout.
-          for ($attempt = 1; $attempt -le 4; $attempt++) {
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
             git fetch origin main
-            git rebase origin/main
-            if ($LASTEXITCODE -ne 0) { throw "Could not rebase executable commit onto latest main" }
+            if ($LASTEXITCODE -ne 0) { throw "Could not fetch latest main" }
+            git reset --hard origin/main
+            if ($LASTEXITCODE -ne 0) { throw "Could not reset to latest main" }
+            Copy-Item $exeBackup "PC-Booster.exe" -Force
+            Copy-Item $manifestBackup "latest.json" -Force
+            git add PC-Booster.exe latest.json
+            git diff --cached --quiet
+            if ($LASTEXITCODE -eq 0) { Write-Host "Published EXE and manifest are already current."; break }
+            git commit -m "Publish standalone PC Booster executable"
+            if ($LASTEXITCODE -ne 0) { throw "Could not commit executable" }
             git push
             if ($LASTEXITCODE -eq 0) { break }
-            if ($attempt -eq 4) { throw "Could not publish executable after 4 push attempts" }
+            if ($attempt -eq 5) { throw "Could not publish executable after 5 attempts" }
             Start-Sleep -Seconds 3
           }
       - name: Publish standalone EXE release
