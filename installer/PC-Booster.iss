@@ -1,6 +1,6 @@
 #define MyAppName "PC Booster"
 #ifndef AppVersion
-  #define AppVersion "0.4.11"
+  #define AppVersion "0.4.12"
 #endif
 #define MyAppPublisher "PC Booster"
 #define MyAppExeName "PC-Booster.exe"
