@@ -292,9 +292,12 @@ public sealed class MainForm : Form
     }
     private Control Metric(string caption,ref Label value)
     {
-        var p=new Panel { Dock=DockStyle.Fill, Padding=new Padding(12), Margin=new Padding(0,0,10,0), BackColor=Color.FromArgb(17,43,69), Tag="metric" };
-        p.Controls.Add(value); value.Dock=DockStyle.Bottom; value.Height=42; value.Font=new Font("Segoe UI",19,FontStyle.Bold);
-        p.Controls.Add(new Label { Text=caption, Dock=DockStyle.Top, Height=26, Font=new Font("Segoe UI",8,FontStyle.Bold) });
+        var p=new Panel { Dock=DockStyle.Fill, Padding=new Padding(18,16,14,14), Margin=new Padding(0,0,12,0), BackColor=Color.FromArgb(14,34,57), Tag="metric" };
+        var glyph=caption.Contains("ПРОЦЕССОР")?"▦":caption.Contains("ПАМЯТЬ")?"▤":"▱";
+        var icon=new Label { Text=glyph, Dock=DockStyle.Left, Width=48, Font=new Font("Segoe UI Symbol",25,FontStyle.Bold), ForeColor=Color.FromArgb(61,190,255), TextAlign=ContentAlignment.MiddleLeft };
+        var heading=new Label { Text=caption, Dock=DockStyle.Top, Height=28, Font=new Font("Segoe UI",8.5f,FontStyle.Bold), ForeColor=Color.FromArgb(166,204,236), TextAlign=ContentAlignment.MiddleLeft };
+        value.Dock=DockStyle.Fill; value.Height=54; value.Font=new Font("Segoe UI",21,FontStyle.Bold); value.TextAlign=ContentAlignment.MiddleLeft; value.ForeColor=Color.FromArgb(241,248,255);
+        p.Controls.Add(value); p.Controls.Add(icon); p.Controls.Add(heading);
         return p;
     }
     private Button ActionButton(string text,Action action)
