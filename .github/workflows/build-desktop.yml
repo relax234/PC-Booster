@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - "desktop/**"
+      - "installer/**"
       - ".github/workflows/build-desktop.yml"
   workflow_dispatch:
 concurrency:
@@ -16,15 +17,34 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Save previous release for delta generation
+        shell: pwsh
+        run: |
+          $oldExe = Join-Path $env:RUNNER_TEMP "PC-Booster-old.exe"
+          $oldManifest = Join-Path $env:RUNNER_TEMP "latest-old.json"
+          if (Test-Path "PC-Booster.exe") { Copy-Item "PC-Booster.exe" $oldExe -Force }
+          if (Test-Path "latest.json") { Copy-Item "latest.json" $oldManifest -Force }
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+      - name: Download xdelta3 patch engine
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP "xdelta3.zip"
+          Invoke-WebRequest "https://github.com/jmacd/xdelta/releases/download/v3.2.2/xdelta3-3.2.2-windows-x86_64.zip" -OutFile $zip
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne "d48f7651d86b78fdca397057b46601f89131f37219675df736db70af44ec3379") { throw "xdelta3 archive checksum mismatch" }
+          $extract = Join-Path $env:RUNNER_TEMP "xdelta3"
+          Expand-Archive $zip $extract -Force
+          $tool = Get-ChildItem $extract -Filter xdelta3.exe -Recurse | Select-Object -First 1
+          if (!$tool) { throw "xdelta3.exe not found in official archive" }
+          Copy-Item $tool.FullName "xdelta3.exe" -Force
       - name: Publish fully self-contained single-file EXE
         shell: pwsh
         run: |
           dotnet publish desktop/PCBooster.Desktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false
           if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
-      - name: Prepare and verify one EXE
+      - name: Prepare EXE, delta patch and update manifest
         shell: pwsh
         run: |
           [xml]$project = Get-Content "desktop/PCBooster.Desktop.csproj"
@@ -39,15 +59,56 @@ jobs:
           Write-Host ("Self-contained EXE size: {0:N2} MB" -f ($size / 1MB))
           if ($size -ge 180MB) { throw "Unexpectedly large EXE: $size bytes" }
           $hash = (Get-FileHash "PC-Booster.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
-          $manifest = @{ version = $version; sha256 = $hash; size = $size; publishedAt = (Get-Date).ToUniversalTime().ToString("o") } | ConvertTo-Json -Compress
+          $deltaFrom = ""
+          $deltaFile = ""
+          $deltaSize = 0
+          $deltaHash = ""
+          $oldExe = Join-Path $env:RUNNER_TEMP "PC-Booster-old.exe"
+          $oldManifestPath = Join-Path $env:RUNNER_TEMP "latest-old.json"
+          if ((Test-Path $oldExe) -and (Test-Path $oldManifestPath)) {
+            $oldManifest = Get-Content $oldManifestPath -Raw | ConvertFrom-Json
+            $deltaFrom = [string]$oldManifest.version
+            if ($deltaFrom -match '^\d+\.\d+\.\d+$' -and $deltaFrom -ne $version) {
+              $deltaFile = "PC-Booster-$deltaFrom-to-$version.xdelta"
+              & ".\xdelta3.exe" -e -s $oldExe "PC-Booster.exe" $deltaFile
+              if ($LASTEXITCODE -ne 0) { throw "Could not create delta patch" }
+              $deltaSize = (Get-Item $deltaFile).Length
+              if ($deltaSize -ge $size) {
+                Remove-Item $deltaFile -Force
+                $deltaFrom = ""; $deltaFile = ""; $deltaSize = 0
+              } else {
+                $deltaHash = (Get-FileHash $deltaFile -Algorithm SHA256).Hash.ToLowerInvariant()
+                Write-Host ("Delta patch size: {0:N2} MB" -f ($deltaSize / 1MB))
+              }
+            }
+          }
+          $manifest = @{
+            version = $version; sha256 = $hash; size = $size
+            publishedAt = (Get-Date).ToUniversalTime().ToString("o")
+            deltaFromVersion = $deltaFrom; deltaFile = $deltaFile
+            deltaSize = $deltaSize; deltaSha256 = $deltaHash
+          } | ConvertTo-Json -Compress
           Set-Content -Path "latest.json" -Value $manifest -Encoding utf8NoBOM
-      - name: Publish EXE to public PC Booster website
+      - name: Build Windows installer
         shell: pwsh
         run: |
-          $exeBackup = Join-Path $env:RUNNER_TEMP "PC-Booster.exe"
-          $manifestBackup = Join-Path $env:RUNNER_TEMP "latest.json"
-          Copy-Item "PC-Booster.exe" $exeBackup -Force
-          Copy-Item "latest.json" $manifestBackup -Force
+          choco install innosetup --no-progress -y
+          if ($LASTEXITCODE -ne 0) { throw "Could not install Inno Setup compiler" }
+          $iscc = "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) { $iscc = (Get-Command ISCC.exe -ErrorAction Stop).Source }
+          & $iscc "/DAppVersion=$((([xml](Get-Content desktop/PCBooster.Desktop.csproj)).Project.PropertyGroup.Version))" "installer/PC-Booster.iss"
+          if ($LASTEXITCODE -ne 0 -or !(Test-Path "PC-Booster-Setup.exe")) { throw "Windows installer build failed" }
+          Write-Host ("Installer size: {0:N2} MB" -f ((Get-Item "PC-Booster-Setup.exe").Length / 1MB))
+      - name: Publish installer, EXE and manifest to website
+        shell: pwsh
+        run: |
+          $backup = Join-Path $env:RUNNER_TEMP "publish"
+          New-Item -ItemType Directory -Path $backup -Force | Out-Null
+          Copy-Item "PC-Booster.exe" $backup -Force
+          Copy-Item "PC-Booster-Setup.exe" $backup -Force
+          Copy-Item "latest.json" $backup -Force
+          $manifest = Get-Content "latest.json" -Raw | ConvertFrom-Json
+          if ($manifest.deltaFile) { Copy-Item $manifest.deltaFile $backup -Force }
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           for ($attempt = 1; $attempt -le 5; $attempt++) {
@@ -55,33 +116,43 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "Could not fetch latest main" }
             git reset --hard origin/main
             if ($LASTEXITCODE -ne 0) { throw "Could not reset to latest main" }
-            Copy-Item $exeBackup "PC-Booster.exe" -Force
-            Copy-Item $manifestBackup "latest.json" -Force
-            git add PC-Booster.exe latest.json
+            Copy-Item (Join-Path $backup "PC-Booster.exe") "PC-Booster.exe" -Force
+            Copy-Item (Join-Path $backup "PC-Booster-Setup.exe") "PC-Booster-Setup.exe" -Force
+            Copy-Item (Join-Path $backup "latest.json") "latest.json" -Force
+            git add PC-Booster.exe PC-Booster-Setup.exe latest.json
+            if ($manifest.deltaFile) {
+              Copy-Item (Join-Path $backup $manifest.deltaFile) $manifest.deltaFile -Force
+              git add $manifest.deltaFile
+            }
             git diff --cached --quiet
-            if ($LASTEXITCODE -eq 0) { Write-Host "Published EXE and manifest are already current."; break }
-            git commit -m "Publish standalone PC Booster executable"
-            if ($LASTEXITCODE -ne 0) { throw "Could not commit executable" }
+            if ($LASTEXITCODE -eq 0) { Write-Host "Published files are already current."; break }
+            git commit -m "Publish PC Booster installer and update packages"
+            if ($LASTEXITCODE -ne 0) { throw "Could not commit release files" }
             git push
             if ($LASTEXITCODE -eq 0) { break }
-            if ($attempt -eq 5) { throw "Could not publish executable after 5 attempts" }
+            if ($attempt -eq 5) { throw "Could not publish release files after 5 attempts" }
             Start-Sleep -Seconds 3
           }
-      - name: Publish standalone EXE release
+      - name: Publish GitHub release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: \${{ github.token }}
         shell: pwsh
         run: |
           [xml]$project = Get-Content "desktop/PCBooster.Desktop.csproj"
           $version = $project.Project.PropertyGroup.Version
           $tag = "desktop-v$version"
           $title = "PC Booster Desktop $version"
-          $notes = "Автономная версия для Windows 10/11 x64. .NET уже включён в EXE — отдельно устанавливать ничего не нужно. Встроенная проверка обновлений. Один файл: PC-Booster.exe."
-          gh release view $tag --repo ${{ github.repository }} *> $null
+          $notes = "Установщик Windows 10/11 x64 с ярлыками и удалением через Windows. Встроенное дифференциальное обновление: загружаются только изменения, если патч доступен; иначе используется полный файл. .NET включён."
+          gh release view $tag --repo \${{ github.repository }} *> $null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $tag --repo ${{ github.repository }} --title $title --notes $notes
+            gh release create $tag --repo \${{ github.repository }} --title $title --notes $notes
             if ($LASTEXITCODE -ne 0) { throw "Could not create GitHub release" }
           }
-          gh release upload $tag "PC-Booster.exe" --repo ${{ github.repository }} --clobber
-          if ($LASTEXITCODE -ne 0) { throw "Could not upload EXE" }
-          gh release edit $tag --repo ${{ github.repository }} --title $title --notes $notes
+          gh release upload $tag "PC-Booster-Setup.exe" "PC-Booster.exe" --repo \${{ github.repository }} --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Could not upload installer and EXE" }
+          $manifest = Get-Content "latest.json" -Raw | ConvertFrom-Json
+          if ($manifest.deltaFile) {
+            gh release upload $tag $manifest.deltaFile --repo \${{ github.repository }} --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Could not upload delta patch" }
+          }
+          gh release edit $tag --repo \${{ github.repository }} --title $title --notes $notes
