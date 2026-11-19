@@ -109,7 +109,9 @@ public sealed class MainForm : Form
         var body=new Panel { Dock=DockStyle.Fill, Padding=new Padding(0,14,0,0), AutoScroll=false };
         content.Controls.Add(body); body.BringToFront(); top.BringToFront();
         pages["__body"]=body; BuildPages(body); body.Resize += (_,_) => ResizePages(body);
-        private void BuildPages(Panel body)
+    }
+
+    private void BuildPages(Panel body)
     {
         var overview=MakePage();
         overview.Controls.Add(BuildHeroBanner());
