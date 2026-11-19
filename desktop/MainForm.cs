@@ -77,52 +77,51 @@ public sealed class MainForm : Form
 
     private void BuildShell()
     {
-        sidebar.Dock=DockStyle.Left; sidebar.Width=236; sidebar.Padding=new Padding(18,22,18,18);
-        content.Dock=DockStyle.Fill; content.Padding=new Padding(30,24,30,26);
+        sidebar.Dock=DockStyle.Left; sidebar.Width=260; sidebar.Padding=new Padding(18,22,18,18);
+        content.Dock=DockStyle.Fill; content.Padding=new Padding(28,25,28,24);
         Controls.Add(content); Controls.Add(sidebar);
-        var brand=new Label { Text="✦  PC BOOSTER", AutoSize=false, Height=54, Dock=DockStyle.Top, Font=new Font("Segoe UI",16,FontStyle.Bold), TextAlign=ContentAlignment.MiddleLeft };
+        var brand=new Label { Text="✦  PC BOOSTER", AutoSize=false, Height=68, Dock=DockStyle.Top, Font=new Font("Segoe UI",17,FontStyle.Bold), TextAlign=ContentAlignment.MiddleLeft, ForeColor=Color.FromArgb(226,244,255) };
         sidebar.Controls.Add(brand);
-        var nav=new SmoothFlowPanel { Dock=DockStyle.Top, Height=410, FlowDirection=FlowDirection.TopDown, WrapContents=false, Padding=new Padding(0,22,0,0) };
+        var bottom=new Label { Text="▦   WINDOWS 10 / 11", Dock=DockStyle.Bottom, Height=48, Font=new Font("Segoe UI",9,FontStyle.Bold), TextAlign=ContentAlignment.MiddleLeft, ForeColor=Color.FromArgb(130,177,216) };
+        sidebar.Controls.Add(bottom);
+        var protection=new Panel { Dock=DockStyle.Bottom, Height=76, Padding=new Padding(12), BackColor=Color.FromArgb(13,42,66), Margin=new Padding(0,0,0,12) };
+        var shield=new Label { Text="✓", Dock=DockStyle.Left, Width=42, Font=new Font("Segoe UI",22,FontStyle.Bold), ForeColor=Color.FromArgb(70,220,170), TextAlign=ContentAlignment.MiddleCenter };
+        var protectionText=new Label { Text="Защита включена\nВаш ПК в безопасности", Dock=DockStyle.Fill, Font=new Font("Segoe UI",9,FontStyle.Bold), ForeColor=Color.FromArgb(220,240,255), TextAlign=ContentAlignment.MiddleLeft };
+        protection.Controls.Add(protectionText); protection.Controls.Add(shield); sidebar.Controls.Add(protection);
+        var nav=new SmoothFlowPanel { Dock=DockStyle.Top, Height=438, FlowDirection=FlowDirection.TopDown, WrapContents=false, Padding=new Padding(0,20,0,0) };
         sidebar.Controls.Add(nav);
         var navigation = new (string Name,string Caption)[] {
-            ("Обзор","◈   Обзор"),("Проверка ПК","⌕   Проверка ПК"),("Оптимизация","✧   Оптимизация"),
-            ("Процессы","▦   Процессы"),("AI-помощник","✦   AI-помощник"),("Настройки","⚙   Настройки")
+            ("Обзор","⌂   Обзор"),("Проверка ПК","⌕   Проверка ПК"),("Оптимизация","⚡   Оптимизация"),
+            ("Процессы","⌁   Процессы"),("AI-помощник","✦   AI-помощник"),("Настройки","⚙   Настройки")
         };
         foreach(var item in navigation)
         {
             var name=item.Name;
-            var b=new Button { Text=item.Caption, Width=198, Height=48, TextAlign=ContentAlignment.MiddleLeft, FlatStyle=FlatStyle.Flat, Tag=name, Margin=new Padding(0,0,0,8), Padding=new Padding(12,0,8,0), Font=new Font("Segoe UI",10,FontStyle.Bold), Cursor=Cursors.Hand };
-            b.FlatAppearance.BorderSize=0;
-            b.FlatAppearance.MouseOverBackColor=Color.FromArgb(25,65,104);
-            b.Click+=(_,_)=>ShowPage(name);
-            navigationButtons.Add(b);
-            nav.Controls.Add(b);
+            var b=new Button { Text=item.Caption, Width=222, Height=56, TextAlign=ContentAlignment.MiddleLeft, FlatStyle=FlatStyle.Flat, Tag=name, Margin=new Padding(0,0,0,8), Padding=new Padding(16,0,8,0), Font=new Font("Segoe UI",10.5f,FontStyle.Bold), Cursor=Cursors.Hand };
+            b.FlatAppearance.BorderSize=0; b.FlatAppearance.MouseOverBackColor=Color.FromArgb(20,62,99);
+            b.Click+=(_,_)=>ShowPage(name); navigationButtons.Add(b); nav.Controls.Add(b);
         }
-        var bottom=new Label { Text="WINDOWS 10 / 11\nЛокальное приложение", Dock=DockStyle.Bottom, Height=48, Font=new Font("Segoe UI",8), TextAlign=ContentAlignment.BottomLeft };
-        sidebar.Controls.Add(bottom);
-        var top=new Panel { Dock=DockStyle.Top, Height=62 };
-        pageTitle.Dock=DockStyle.Left; pageTitle.AutoSize=true; pageTitle.Font=new Font("Segoe UI",22,FontStyle.Bold);
+        var top=new Panel { Dock=DockStyle.Top, Height=76 };
+        pageTitle.Dock=DockStyle.Left; pageTitle.AutoSize=true; pageTitle.Font=new Font("Segoe UI",25,FontStyle.Bold);
         status.Dock=DockStyle.Right; status.AutoSize=true; status.Text="●  Приложение запущено"; status.TextAlign=ContentAlignment.MiddleRight;
+        status.Font=new Font("Segoe UI",9.5f,FontStyle.Bold); status.ForeColor=Color.FromArgb(64,220,164);
         top.Controls.Add(status); top.Controls.Add(pageTitle); content.Controls.Add(top);
-        var body=new Panel { Dock=DockStyle.Fill, Padding=new Padding(0,18,0,0), AutoScroll=false };
+        var body=new Panel { Dock=DockStyle.Fill, Padding=new Padding(0,14,0,0), AutoScroll=false };
         content.Controls.Add(body); body.BringToFront(); top.BringToFront();
-        pages["__body"]=body;
-        BuildPages(body);
-        body.Resize += (_,_) => ResizePages(body);
-    }
-
-    private void BuildPages(Panel body)
+        pages["__body"]=body; BuildPages(body); body.Resize += (_,_) => ResizePages(body);
+        private void BuildPages(Panel body)
     {
         var overview=MakePage();
-        var hero=Card("Компьютер под контролем","Быстрая информация о состоянии системы. Проверка обновляется автоматически.");
-        var stats=new TableLayoutPanel { Dock=DockStyle.Top, Height=142, ColumnCount=3, RowCount=1, Padding=new Padding(0,12,0,10) };
+        overview.Controls.Add(BuildHeroBanner());
+        var stats=new TableLayoutPanel { Dock=DockStyle.Top, Height=176, ColumnCount=3, RowCount=1, Padding=new Padding(0,12,0,12), BackColor=Color.Transparent };
         for(int i=0;i<3;i++) stats.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,33.33f));
         stats.Controls.Add(Metric("ПРОЦЕССОР",ref cpuValue),0,0);
         stats.Controls.Add(Metric("ОПЕРАТИВНАЯ ПАМЯТЬ",ref ramValue),1,0);
         stats.Controls.Add(Metric("ДИСК WINDOWS",ref diskValue),2,0);
-        var info=Card("Система",""); info.Controls.Add(stats);
-        var scan=ActionButton("Проверить компьютер",()=>ShowPage("Проверка ПК"));
-        overview.Controls.Add(hero); overview.Controls.Add(info); overview.Controls.Add(scan);
+        overview.Controls.Add(stats);
+        var tip=Card("⚡  Совет от PC Booster","Регулярная очистка помогает поддерживать порядок и освобождать место на диске.");
+        var tipButton=ActionButton("Узнать больше  ›",()=>ShowPage("Оптимизация")); tipButton.Height=40; tip.Controls.Add(tipButton);
+        overview.Controls.Add(tip);
         pages["Обзор"]=overview;
 
         var check=MakePage();
@@ -197,6 +196,39 @@ public sealed class MainForm : Form
         foreach(var pair in pages.Where(p=>p.Key!="__body")) { var c=pair.Value; c.Dock=DockStyle.Fill; c.Visible=false; body.Controls.Add(c); }
     }
 
+    private Panel BuildHeroBanner()
+    {
+        var banner=new Panel { Height=246, Width=900, Margin=new Padding(0,0,0,8), BackColor=Color.FromArgb(8,42,83), Padding=new Padding(24), Tag="hero" };
+        var title=new Label { Text="Компьютер под контролем", AutoSize=false, Font=new Font("Segoe UI",21,FontStyle.Bold), ForeColor=Color.FromArgb(239,248,255), BackColor=Color.Transparent };
+        var subtitle=new Label { Text="Система работает стабильно и эффективно.", AutoSize=false, Font=new Font("Segoe UI",11.5f), ForeColor=Color.FromArgb(171,208,239), BackColor=Color.Transparent };
+        var scan=ActionButton("⌕   Проверить компьютер",()=>ShowPage("Проверка ПК")); scan.Height=52; scan.Font=new Font("Segoe UI",11,FontStyle.Bold);
+        banner.Controls.Add(title); banner.Controls.Add(subtitle); banner.Controls.Add(scan);
+        void LayoutBanner(){int right=Math.Max(360,banner.ClientSize.Width/2); title.SetBounds(right,48,Math.Max(280,banner.ClientSize.Width-right-24),42); subtitle.SetBounds(right,96,Math.Max(260,banner.ClientSize.Width-right-24),34); scan.SetBounds(right,150,Math.Min(310,Math.Max(230,banner.ClientSize.Width-right-24)),52);}
+        banner.Resize+=(_,_)=>LayoutBanner(); LayoutBanner();
+        banner.Paint+=(_,e)=>{
+            var g=e.Graphics; g.SmoothingMode=SmoothingMode.AntiAlias;
+            using var brush=new LinearGradientBrush(banner.ClientRectangle,Color.FromArgb(9,75,143),Color.FromArgb(5,27,59),35f); g.FillRectangle(brush,banner.ClientRectangle);
+            using var glow=new SolidBrush(Color.FromArgb(42,32,151,245)); g.FillEllipse(glow,-90,35,360,270);
+            using var pen=new Pen(Color.FromArgb(100,65,174,255),2); g.DrawArc(pen,banner.Width-340,-160,430,430,40,110); g.DrawArc(pen,banner.Width-290,-120,390,390,40,110);
+            var laptop=new Rectangle(55,48,235,130);
+            using var screenBrush=new LinearGradientBrush(laptop,Color.FromArgb(4,14,34),Color.FromArgb(17,86,151),35f);
+            using var screenPath=RoundedRect(laptop,12); g.FillPath(screenBrush,screenPath);
+            using var screenPen=new Pen(Color.FromArgb(100,112,207,255),3); g.DrawPath(screenPen,screenPath);
+            using var winBrush=new SolidBrush(Color.FromArgb(60,185,255)); int wx=150,wy=88;
+            g.FillRectangle(winBrush,wx,wy,28,24); g.FillRectangle(winBrush,wx+33,wy,28,24); g.FillRectangle(winBrush,wx,wy+29,28,24); g.FillRectangle(winBrush,wx+33,wy+29,28,24);
+            Point[] basePoints={new Point(48,181),new Point(297,181),new Point(322,196),new Point(25,196)};
+            using var baseBrush=new LinearGradientBrush(new Rectangle(25,181,297,16),Color.FromArgb(83,169,235),Color.FromArgb(15,63,115),90f); g.FillPolygon(baseBrush,basePoints);
+            using var basePen=new Pen(Color.FromArgb(120,150,215,255),1); g.DrawPolygon(basePen,basePoints);
+        };
+        return banner;
+    }
+    private static GraphicsPath RoundedRect(Rectangle bounds,int radius)
+    {
+        var path=new GraphicsPath(); int d=radius*2;
+        path.AddArc(bounds.X,bounds.Y,d,d,180,90); path.AddArc(bounds.Right-d,bounds.Y,d,d,270,90);
+        path.AddArc(bounds.Right-d,bounds.Bottom-d,d,d,0,90); path.AddArc(bounds.X,bounds.Bottom-d,d,d,90,90);
+        path.CloseFigure(); return path;
+    }
     private Panel MakePage()
     {
         var page=new SmoothFlowPanel { Dock=DockStyle.Fill, AutoScroll=true, FlowDirection=FlowDirection.TopDown, WrapContents=false, Padding=new Padding(0,0,12,16), Margin=Padding.Empty, Tag="page" };
