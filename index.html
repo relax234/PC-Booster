@@ -36,7 +36,7 @@
   <div class="cardhead"><h2>AI ASSISTANT</h2><span class="sub">ПРЕДВАРИТЕЛЬНЫЙ ИНТЕРФЕЙС</span></div>
   <div style="color:#b8cec2;font-size:13px">Привет! Я помогу разобраться с состоянием компьютера и подобрать безопасные действия.</div>
   <div class="chat"><input id="prompt" placeholder="Напиши, что нужно сделать..." maxlength="240"><button id="send">➤</button></div>
-  <div class="sub" style="margin-top:9px">Чат станет активным после подключения защищённого AI-сервера.</div>
+  <div class="sub" id="aiStatus" style="margin-top:9px">Проверяем подключение AI-сервера…</div><div id="chatResponse" class="notice" style="display:none;white-space:pre-wrap"></div>
  </section>
 </aside>
 <section class="metrics">
@@ -56,12 +56,15 @@
 <footer class="footer">PC BOOSTER AI · CYBER EDITION · НЕОФИЦИАЛЬНЫЙ ИНСТРУМЕНТ ОБСЛУЖИВАНИЯ WINDOWS</footer>
 </div><div class="toast" id="toast"></div>
 <script>
+const API_URL='https://pc-booster-ai-api.onrender.com';
 const toast=document.getElementById('toast');let timer;
 function notify(message){toast.textContent=message;toast.classList.add('show');clearTimeout(timer);timer=setTimeout(()=>toast.classList.remove('show'),3500)}
-document.getElementById('scan').addEventListener('click',()=>notify('Для диагностики подключи PC Booster Helper на компьютере.'));
-document.getElementById('helperBtn').addEventListener('click',()=>notify('Windows Helper находится в разработке.'));
-function send(){const input=document.getElementById('prompt');if(!input.value.trim())return;notify('AI-сервер ещё не подключён. Сообщение не отправлено.');}
+async function checkAI(){const status=document.getElementById('aiStatus');try{const r=await fetch(API_URL+'/health');const d=await r.json();status.textContent=d.aiConfigured?'AI-сервер подключён. Можешь задать вопрос.':'Сервер работает; для включения AI нужен API-ключ.';}catch{status.textContent='AI-сервер запускается или временно недоступен.';}}
+document.getElementById('scan').addEventListener('click',()=>notify('Сначала установи Windows Helper — он нужен для реальной диагностики.'));
+document.getElementById('helperBtn').addEventListener('click',()=>notify('Windows Helper — следующий этап разработки. Пока системные команды не выполняются.'));
+async function send(){const input=document.getElementById('prompt'),button=document.getElementById('send'),output=document.getElementById('chatResponse');const message=input.value.trim();if(!message)return;button.disabled=true;button.textContent='…';output.style.display='block';output.textContent='PC Booster AI думает…';try{const r=await fetch(API_URL+'/api/assistant',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Ошибка AI-сервера');output.textContent=data.answer;input.value='';}catch(e){output.textContent=e.message||'Не удалось связаться с AI-сервером.';}finally{button.disabled=false;button.textContent='➤';}}
 document.getElementById('send').addEventListener('click',send);
 document.getElementById('prompt').addEventListener('keydown',e=>{if(e.key==='Enter')send()});
+checkAI();
 </script>
 </body></html>
