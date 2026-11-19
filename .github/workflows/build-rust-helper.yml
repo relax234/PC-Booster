@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: rust-helper-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: windows-latest
@@ -41,4 +45,8 @@ jobs:
         shell: pwsh
         run: |
           $tag = "helper-v0.2.0"
-          gh release create $tag "out/PC Booster Helper.exe" "PC-Booster-Helper-Rust-Windows-x64.zip" --repo ${{ github.repository }} --title "PC Booster Helper 0.2.0 (Rust)" --notes "Windows 10/11 x64. Rust system engine, local-only API, authenticated pairing, PC diagnostics, allowlisted reversible user-level tweaks with rollback. No arbitrary command execution." 
+          gh release view $tag --repo ${{ github.repository }} 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo ${{ github.repository }} --title "PC Booster Helper 0.2.0 (Rust)" --notes "Windows 10/11 x64. Rust system engine, local-only API, authenticated pairing, PC diagnostics, allowlisted reversible user-level tweaks with rollback. No arbitrary command execution."
+          }
+          gh release upload $tag "out/PC Booster Helper.exe" "PC-Booster-Helper-Rust-Windows-x64.zip" --repo ${{ github.repository }} --clobber 
