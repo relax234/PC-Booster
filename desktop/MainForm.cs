@@ -386,7 +386,11 @@ public sealed class MainForm : Form
             else
             {
                 availableUpdate = manifest;
-                updateStatusLabel.Text = "Доступна версия " + manifest.version + " (сейчас " + CurrentVersion + "). Размер: " + FormatBytes(manifest.size) + ".";
+                var canDelta = manifest.deltaFromVersion == CurrentVersion && manifest.deltaSize > 0 &&
+                    manifest.deltaSha256.Length == 64 && File.Exists(Path.Combine(AppContext.BaseDirectory, "xdelta3.exe"));
+                var downloadSize = canDelta ? manifest.deltaSize : manifest.size;
+                updateStatusLabel.Text = "Доступна версия " + manifest.version + ". Размер загрузки: " + FormatBytes(downloadSize) +
+                    (canDelta ? " (обновление только изменений)." : " (полный файл).");
                 installUpdateButton.Enabled = true;
             }
         }
@@ -399,20 +403,67 @@ public sealed class MainForm : Form
         if (updateBusy || availableUpdate == null) return;
         updateBusy = true;
         installUpdateButton.Enabled = false;
-        updateStatusLabel.Text = "Скачиваю обновление...";
+        updateStatusLabel.Text = "Подготавливаю обновление...";
         string? downloadedPath = null;
+        string? patchPath = null;
         try
         {
             var manifest = availableUpdate;
-            if (manifest.size <= 0 || manifest.size > 200L * 1024 * 1024) throw new Exception("Размер обновления не прошёл проверку безопасности.");
-            var bytes = await http.GetByteArrayAsync("https://pc-booster-ai-api.onrender.com/api/updates/download");
-            if (bytes.LongLength != manifest.size) throw new Exception("Размер загруженного файла не совпадает с данными сервера.");
-            var actualHash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
-            if (!CryptographicOperations.FixedTimeEquals(System.Text.Encoding.ASCII.GetBytes(actualHash), System.Text.Encoding.ASCII.GetBytes(manifest.sha256.ToLowerInvariant())))
-                throw new Exception("Контрольная сумма обновления не совпала. Файл не будет установлен.");
-            downloadedPath = Path.Combine(Path.GetTempPath(), "PC-Booster-update-" + Guid.NewGuid().ToString("N") + ".exe");
-            await File.WriteAllBytesAsync(downloadedPath, bytes);
+            if (manifest.size <= 0 || manifest.size > 200L * 1024 * 1024 || manifest.sha256.Length != 64)
+                throw new Exception("Данные обновления не прошли проверку безопасности.");
             var targetPath = Application.ExecutablePath;
+            var newExePath = Path.Combine(Path.GetTempPath(), "PC-Booster-new-" + Guid.NewGuid().ToString("N") + ".exe");
+            var canDelta = manifest.deltaFromVersion == CurrentVersion && manifest.deltaSize > 0 &&
+                manifest.deltaSize <= manifest.size && manifest.deltaSha256.Length == 64 &&
+                File.Exists(Path.Combine(AppContext.BaseDirectory, "xdelta3.exe"));
+            var ready = false;
+
+            if (canDelta)
+            {
+                try
+                {
+                    updateStatusLabel.Text = "Скачиваю компактное обновление...";
+                    var patchBytes = await http.GetByteArrayAsync("https://pc-booster-ai-api.onrender.com/api/updates/download?from=" + Uri.EscapeDataString(CurrentVersion));
+                    if (patchBytes.LongLength != manifest.deltaSize) throw new Exception("Размер патча не совпадает.");
+                    var patchHash = Convert.ToHexString(SHA256.HashData(patchBytes)).ToLowerInvariant();
+                    if (!CryptographicOperations.FixedTimeEquals(System.Text.Encoding.ASCII.GetBytes(patchHash), System.Text.Encoding.ASCII.GetBytes(manifest.deltaSha256.ToLowerInvariant())))
+                        throw new Exception("Контрольная сумма патча не совпала.");
+                    patchPath = Path.Combine(Path.GetTempPath(), "PC-Booster-patch-" + Guid.NewGuid().ToString("N") + ".xdelta");
+                    await File.WriteAllBytesAsync(patchPath, patchBytes);
+                    updateStatusLabel.Text = "Применяю изменения...";
+                    var patcher = Path.Combine(AppContext.BaseDirectory, "xdelta3.exe");
+                    var psi = new ProcessStartInfo { FileName = patcher, UseShellExecute = false, CreateNoWindow = true };
+                    psi.ArgumentList.Add("-d"); psi.ArgumentList.Add("-s"); psi.ArgumentList.Add(targetPath);
+                    psi.ArgumentList.Add(patchPath); psi.ArgumentList.Add(newExePath);
+                    using var patchProcess = Process.Start(psi) ?? throw new Exception("Не удалось запустить модуль обновления.");
+                    await patchProcess.WaitForExitAsync();
+                    if (patchProcess.ExitCode != 0 || !File.Exists(newExePath)) throw new Exception("Не удалось применить патч.");
+                    var newHash = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(newExePath))).ToLowerInvariant();
+                    if (!CryptographicOperations.FixedTimeEquals(System.Text.Encoding.ASCII.GetBytes(newHash), System.Text.Encoding.ASCII.GetBytes(manifest.sha256.ToLowerInvariant())))
+                        throw new Exception("Проверка собранного файла не пройдена.");
+                    ready = true;
+                }
+                catch (Exception ex)
+                {
+                    updateStatusLabel.Text = "Патч не подошёл, загружаю полный файл...";
+                    try { if (File.Exists(newExePath)) File.Delete(newExePath); } catch { }
+                    try { if (patchPath != null && File.Exists(patchPath)) File.Delete(patchPath); } catch { }
+                    patchPath = null;
+                }
+            }
+
+            if (!ready)
+            {
+                updateStatusLabel.Text = "Скачиваю полное обновление...";
+                var bytes = await http.GetByteArrayAsync("https://pc-booster-ai-api.onrender.com/api/updates/download");
+                if (bytes.LongLength != manifest.size) throw new Exception("Размер загруженного файла не совпадает с данными сервера.");
+                var actualHash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+                if (!CryptographicOperations.FixedTimeEquals(System.Text.Encoding.ASCII.GetBytes(actualHash), System.Text.Encoding.ASCII.GetBytes(manifest.sha256.ToLowerInvariant())))
+                    throw new Exception("Контрольная сумма обновления не совпала.");
+                await File.WriteAllBytesAsync(newExePath, bytes);
+            }
+
+            downloadedPath = newExePath;
             var scriptPath = Path.Combine(Path.GetTempPath(), "PC-Booster-updater-" + Guid.NewGuid().ToString("N") + ".ps1");
             string Ps(string value) => "'" + value.Replace("'", "''") + "'";
             var script = "$ErrorActionPreference = 'Stop'\n" +
@@ -420,7 +471,7 @@ public sealed class MainForm : Form
                 "$source = " + Ps(downloadedPath) + "\n" +
                 "$processId = " + Environment.ProcessId + "\n" +
                 "try {\n" +
-                "  while (Get-Process -Id $processId -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 500 }\n" +
+                "  while (Get-Process -Id $processId -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 400 }\n" +
                 "  Copy-Item -LiteralPath $source -Destination $target -Force\n" +
                 "  Start-Process -FilePath $target\n" +
                 "  Remove-Item -LiteralPath $source -Force -ErrorAction SilentlyContinue\n" +
@@ -428,9 +479,9 @@ public sealed class MainForm : Form
                 "  Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue\n" +
                 "} catch { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'PC Booster — ошибка обновления') | Out-Null }";
             await File.WriteAllTextAsync(scriptPath, script, new System.Text.UTF8Encoding(false));
-            Process.Start(new ProcessStartInfo { FileName = "powershell.exe", Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"" + scriptPath + "\"", UseShellExecute = false, CreateNoWindow = true });
-            updateStatusLabel.Text = "Обновление загружено. PC Booster сейчас перезапустится...";
-            await Task.Delay(700);
+            Process.Start(new ProcessStartInfo { FileName = "powershell.exe", Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"" + scriptPath + "\"", UseShellExecute = true, Verb = "runas" });
+            updateStatusLabel.Text = "Обновление подготовлено. Подтверди запрос Windows, затем программа перезапустится.";
+            await Task.Delay(500);
             Application.Exit();
         }
         catch (Exception ex)
@@ -440,9 +491,21 @@ public sealed class MainForm : Form
             installUpdateButton.Enabled = availableUpdate != null;
             updateBusy = false;
         }
+        finally { if (patchPath != null) try { File.Delete(patchPath); } catch { } }
     }
 
-    private sealed class UpdateManifest { public string version { get; set; } = ""; public string tag { get; set; } = ""; public string sha256 { get; set; } = ""; public long size { get; set; } public DateTime? publishedAt { get; set; } }
+    private sealed class UpdateManifest
+    {
+        public string version { get; set; } = "";
+        public string tag { get; set; } = "";
+        public string sha256 { get; set; } = "";
+        public long size { get; set; }
+        public DateTime? publishedAt { get; set; }
+        public string deltaFromVersion { get; set; } = "";
+        public string deltaFile { get; set; } = "";
+        public long deltaSize { get; set; }
+        public string deltaSha256 { get; set; } = "";
+    }
     private void ApplyTheme()
     {
         var bg=light?Color.FromArgb(241,247,243):Color.FromArgb(11,19,14);
