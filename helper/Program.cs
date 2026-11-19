@@ -94,6 +94,8 @@ while (listener.IsListening)
     });
 }
 
+}
+
 private static async Task WriteJson(HttpListenerResponse response, object value)
 {
     response.ContentType = "application/json; charset=utf-8";
