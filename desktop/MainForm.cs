@@ -204,7 +204,7 @@ public sealed class MainForm : Form
         {
             setcard.Visible = !showAnimations;
             if (animationCard != null) animationCard.Visible = showAnimations;
-            ResizePage(settings);
+            settings.PerformLayout();
         }
         var appearanceTabs = new FlowLayoutPanel { AutoSize=true, FlowDirection=FlowDirection.LeftToRight, WrapContents=true, Dock=DockStyle.Top, Padding=new Padding(0,4,0,8) };
         var viewTab = ActionButton("ВИД",()=>SelectAppearance(false)); viewTab.Height=42;
