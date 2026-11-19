@@ -16,7 +16,7 @@ public sealed class MainForm : Form
     private readonly Label status = new();
     private readonly Dictionary<string, Control> pages = new();
     private readonly System.Windows.Forms.Timer refreshTimer = new() { Interval = 2500 };
-    private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(35) };
+    private readonly HttpClient http = new() { Timeout = TimeSpan.FromMinutes(3) };
     private bool light;
     private string currentPage = "Обзор";
     private Label cpuValue = new(), ramValue = new(), diskValue = new(), osValue = new();
