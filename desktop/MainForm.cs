@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Net.Http.Json;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace PCBoosterDesktop;
@@ -25,6 +26,10 @@ public sealed class MainForm : Form
     private RichTextBox chatLog = new();
     private TextBox chatInput = new();
     private readonly List<(string role,string content)> chatHistory = new();
+    private Label updateStatusLabel = new();
+    private Button installUpdateButton = new();
+    private UpdateManifest? availableUpdate;
+    private bool updateBusy;
     private readonly Dictionary<string,List<RegValue>> rollback = new();
     private (ulong idle, ulong kernel, ulong user)? previousCpuSample;
     private readonly string rollbackPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"PCBooster","desktop-rollback.json");
@@ -132,7 +137,17 @@ public sealed class MainForm : Form
         var theme=ActionButton("Переключить светлую / тёмную тему",()=>{light=!light;ApplyTheme();});
         setcard.Controls.Add(theme);
         var about=new Label { Dock=DockStyle.Top, Height=70, Text="PC Booster для Windows 10/11\nДиагностика и оптимизация выполняются на этом компьютере.", Padding=new Padding(4,14,4,4) };
-        setcard.Controls.Add(about); settings.Controls.Add(setcard); pages["Настройки"]=settings;
+        setcard.Controls.Add(about); settings.Controls.Add(setcard);
+        var updateCard=Card("Обновление приложения","Проверяй новые версии прямо здесь. Программа сама скачает обновление, заменит текущий EXE и перезапустится — установщик не нужен.");
+        updateStatusLabel=new Label { Dock=DockStyle.Top, Height=48, Padding=new Padding(4,12,4,4), Text="Текущая версия: " + CurrentVersion };
+        installUpdateButton=ActionButton("Скачать и установить обновление",InstallUpdate);
+        installUpdateButton.Enabled=false;
+        var checkUpdateButton=ActionButton("Проверить обновления",()=>CheckForUpdates());
+        updateCard.Controls.Add(updateStatusLabel);
+        updateCard.Controls.Add(installUpdateButton);
+        updateCard.Controls.Add(checkUpdateButton);
+        settings.Controls.Add(updateCard);
+        pages["Настройки"]=settings;
 
         foreach(var pair in pages.Where(p=>p.Key!="__body")) { var c=pair.Value; c.Dock=DockStyle.Fill; c.Visible=false; body.Controls.Add(c); }
     }
@@ -284,6 +299,84 @@ public sealed class MainForm : Form
         } catch(Exception ex){chatLog.AppendText("Ошибка: "+ex.Message+"\n");}
     }
 
+    private static string CurrentVersion => typeof(MainForm).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "0.0.0";
+
+    private async void CheckForUpdates()
+    {
+        if (updateBusy) return;
+        updateBusy = true;
+        installUpdateButton.Enabled = false;
+        updateStatusLabel.Text = "Проверяю наличие новой версии...";
+        try
+        {
+            var manifest = await http.GetFromJsonAsync<UpdateManifest>("https://pc-booster-ai-api.onrender.com/api/updates/latest");
+            if (manifest == null || !Version.TryParse(manifest.version, out var latest) || !Version.TryParse(CurrentVersion, out var current))
+                throw new Exception("Сервер вернул некорректную информацию о версии.");
+            if (latest <= current)
+            {
+                availableUpdate = null;
+                updateStatusLabel.Text = "Установлена последняя версия — " + CurrentVersion + ".";
+            }
+            else
+            {
+                availableUpdate = manifest;
+                updateStatusLabel.Text = "Доступна версия " + manifest.version + " (сейчас " + CurrentVersion + "). Размер: " + FormatBytes(manifest.size) + ".";
+                installUpdateButton.Enabled = true;
+            }
+        }
+        catch (Exception ex) { updateStatusLabel.Text = "Не удалось проверить обновления: " + ex.Message; }
+        finally { updateBusy = false; }
+    }
+
+    private async void InstallUpdate()
+    {
+        if (updateBusy || availableUpdate == null) return;
+        updateBusy = true;
+        installUpdateButton.Enabled = false;
+        updateStatusLabel.Text = "Скачиваю обновление...";
+        string? downloadedPath = null;
+        try
+        {
+            var manifest = availableUpdate;
+            if (manifest.size <= 0 || manifest.size > 200L * 1024 * 1024) throw new Exception("Размер обновления не прошёл проверку безопасности.");
+            var bytes = await http.GetByteArrayAsync("https://pc-booster-ai-api.onrender.com/api/updates/download");
+            if (bytes.LongLength != manifest.size) throw new Exception("Размер загруженного файла не совпадает с данными сервера.");
+            var actualHash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+            if (!CryptographicOperations.FixedTimeEquals(System.Text.Encoding.ASCII.GetBytes(actualHash), System.Text.Encoding.ASCII.GetBytes(manifest.sha256.ToLowerInvariant())))
+                throw new Exception("Контрольная сумма обновления не совпала. Файл не будет установлен.");
+            downloadedPath = Path.Combine(Path.GetTempPath(), "PC-Booster-update-" + Guid.NewGuid().ToString("N") + ".exe");
+            await File.WriteAllBytesAsync(downloadedPath, bytes);
+            var targetPath = Application.ExecutablePath;
+            var scriptPath = Path.Combine(Path.GetTempPath(), "PC-Booster-updater-" + Guid.NewGuid().ToString("N") + ".ps1");
+            string Ps(string value) => "'" + value.Replace("'", "''") + "'";
+            var script = "$ErrorActionPreference = 'Stop'\n" +
+                "$target = " + Ps(targetPath) + "\n" +
+                "$source = " + Ps(downloadedPath) + "\n" +
+                "$processId = " + Environment.ProcessId + "\n" +
+                "try {\n" +
+                "  while (Get-Process -Id $processId -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 500 }\n" +
+                "  Copy-Item -LiteralPath $source -Destination $target -Force\n" +
+                "  Start-Process -FilePath $target\n" +
+                "  Remove-Item -LiteralPath $source -Force -ErrorAction SilentlyContinue\n" +
+                "  Start-Sleep -Seconds 2\n" +
+                "  Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue\n" +
+                "} catch { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'PC Booster — ошибка обновления') | Out-Null }";
+            await File.WriteAllTextAsync(scriptPath, script, new System.Text.UTF8Encoding(false));
+            Process.Start(new ProcessStartInfo { FileName = "powershell.exe", Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"" + scriptPath + "\"", UseShellExecute = false, CreateNoWindow = true });
+            updateStatusLabel.Text = "Обновление загружено. PC Booster сейчас перезапустится...";
+            await Task.Delay(700);
+            Application.Exit();
+        }
+        catch (Exception ex)
+        {
+            if (downloadedPath != null) try { File.Delete(downloadedPath); } catch { }
+            updateStatusLabel.Text = "Не удалось установить обновление: " + ex.Message;
+            installUpdateButton.Enabled = availableUpdate != null;
+            updateBusy = false;
+        }
+    }
+
+    private sealed class UpdateManifest { public string version { get; set; } = ""; public string tag { get; set; } = ""; public string sha256 { get; set; } = ""; public long size { get; set; } public DateTime? publishedAt { get; set; } }
     private void ApplyTheme()
     {
         var bg=light?Color.FromArgb(242,247,243):Color.FromArgb(10,17,13);
