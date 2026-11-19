@@ -562,15 +562,26 @@ public sealed class MainForm : Form
             {
                 availableUpdate = manifest;
                 var canDelta = manifest.deltaFromVersion == CurrentVersion && manifest.deltaSize > 0 &&
-                    manifest.deltaSha256.Length == 64 && File.Exists(Path.Combine(AppContext.BaseDirectory, "xdelta3.exe"));
-                var downloadSize = canDelta ? manifest.deltaSize : manifest.size;
-                updateStatusLabel.Text = "Доступна версия " + manifest.version + ". Размер загрузки: " + FormatBytes(downloadSize) +
-                    (canDelta ? " (обновление только изменений)." : " (полный файл).");
-                status.Text = "●  Доступно обновление " + manifest.version;
-                installUpdateButton.Text = pendingUpdatePath != null && File.Exists(pendingUpdatePath)
-                    ? "ОБНОВИТЬ СЕЙЧАС" : "СКАЧАТЬ И УСТАНОВИТЬ";
-                installUpdateButton.Enabled = true;
-                promptUpdate = manifest;
+                    manifest.deltaSize < manifest.size && manifest.deltaSha256.Length == 64 &&
+                    File.Exists(Path.Combine(AppContext.BaseDirectory, "xdelta3.exe"));
+                if (canDelta)
+                {
+                    updateStatusLabel.Text = "Доступна версия " + manifest.version + ". Будет скачано только изменений: " +
+                        FormatBytes(manifest.deltaSize) + ". Полный файл приложения загружаться не будет.";
+                    status.Text = "●  Доступно компактное обновление " + manifest.version;
+                    installUpdateButton.Text = pendingUpdatePath != null && File.Exists(pendingUpdatePath)
+                        ? "ОБНОВИТЬ СЕЙЧАС" : "СКАЧАТЬ ОБНОВЛЕНИЕ";
+                    installUpdateButton.Enabled = true;
+                    promptUpdate = manifest;
+                }
+                else
+                {
+                    updateStatusLabel.Text = "Версия " + manifest.version + " найдена, но компактный пакет для " +
+                        CurrentVersion + " пока недоступен. Полная версия не будет скачана.";
+                    status.Text = "●  Ожидается частичный пакет обновления";
+                    installUpdateButton.Text = "ЧАСТИЧНЫЙ ПАКЕТ НЕДОСТУПЕН";
+                    installUpdateButton.Enabled = false;
+                }
             }
         }
         catch (Exception ex)
@@ -698,27 +709,19 @@ public sealed class MainForm : Form
                         {
                             throw;
                         }
-                        catch
+                        catch (Exception ex)
                         {
                             try { if (File.Exists(newExePath)) File.Delete(newExePath); } catch { }
                             try { if (patchPath != null && File.Exists(patchPath)) File.Delete(patchPath); } catch { }
                             patchPath = null;
-                            progress.SetStage("Компактный патч не подошёл. Перехожу на полную загрузку...");
+                            throw new InvalidDataException(
+                                "Частичное обновление не удалось применить. Полная версия не скачивалась. " +
+                                "Проверь обновление позже.", ex);
                         }
                     }
 
                     if (!ready)
-                    {
-                        progress.SetStage("Скачиваю полную версию приложения...");
-                        await DownloadUpdateFileAsync(
-                            "https://pc-booster-ai-api.onrender.com/api/updates/download",
-                            newExePath, manifest.size, progress, cancelSource.Token);
-                        transferSize += manifest.size;
-
-                        var fullHash = await ComputeFileSha256Async(newExePath, cancelSource.Token);
-                        if (!string.Equals(fullHash, manifest.sha256, StringComparison.OrdinalIgnoreCase))
-                            throw new InvalidDataException("Контрольная сумма обновления не совпала.");
-                    }
+                        throw new InvalidDataException("Для этой версии нет подходящего частичного пакета. Полная версия не будет скачана.");
 
                     readyPath = newExePath;
                     pendingUpdatePath = newExePath;
