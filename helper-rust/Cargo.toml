@@ -14,3 +14,6 @@ uuid = { version = "1", features = ["v4"] }
 sha2 = "0.10"
 subtle = "2"
 tower-http = { version = "0.5", features = ["cors"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging"] }
