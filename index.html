@@ -18,6 +18,58 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;ma
 footer{text-align:center;color:#718477;font-size:11px;padding-top:19px}
 @media(max-width:780px){.grid{grid-template-columns:1fr}.chat-panel{min-height:570px}.messages{max-height:460px}.side{grid-template-columns:1fr 1fr}.side .panel:first-child{grid-column:1/-1}}
 @media(max-width:520px){.wrap{width:calc(100% - 22px);padding-top:14px}header{margin-bottom:18px}.brand{font-size:16px}.status{font-size:10px}.intro h1{font-size:27px}.side{grid-template-columns:1fr}.side .panel:first-child{grid-column:auto}.chat-panel{min-height:540px}.messages{padding:14px;min-height:310px}.bubble{max-width:96%}.panel-head{padding:14px}.composer{padding:11px}.send{padding:0 14px}}
+
+/* Refined visual system */
+body{
+ background:
+  radial-gradient(ellipse at 12% 0%,rgba(55,145,87,.19),transparent 34rem),
+  radial-gradient(ellipse at 92% 16%,rgba(36,104,69,.13),transparent 28rem),
+  #09110d;
+}
+.wrap{width:min(1180px,100% - 44px);padding-top:28px}
+header{margin-bottom:30px}
+.logo{width:42px;height:42px;border-radius:14px;background:linear-gradient(145deg,#234d32,#14291c);border:1px solid #4b9561;box-shadow:0 5px 22px #163b2480}
+.brand{font-size:19px;letter-spacing:-.025em}
+.brand small{margin-top:2px;letter-spacing:0}
+.status{padding:8px 12px;border:1px solid #294333;border-radius:99px;background:#101d15}
+.intro{margin:10px 0 22px}
+.intro h1{font-size:clamp(29px,4.5vw,42px);letter-spacing:-.045em;font-weight:760}
+.intro p{font-size:15px;max-width:650px;line-height:1.65}
+.grid{gap:19px;grid-template-columns:minmax(0,1.8fr) minmax(270px,.78fr)}
+.panel{background:linear-gradient(155deg,rgba(22,36,27,.98),rgba(14,24,18,.98));border:1px solid #2b4433;border-radius:20px;box-shadow:0 14px 45px #00000025}
+.chat-panel{min-height:660px}
+.panel-head{padding:19px 21px;background:rgba(27,46,33,.48)}
+.panel-head h2{font-size:16px;font-weight:700;letter-spacing:-.01em}
+.tag{font-weight:700;letter-spacing:.07em;padding:6px 11px}
+.messages{padding:22px;gap:16px;max-height:600px}
+.welcome{max-width:95%;padding:17px 18px;border-radius:16px;background:linear-gradient(135deg,#1b3423,#17271d);border-color:#365b3e;line-height:1.65}
+.welcome strong{font-size:15px;color:#c7f8d5}
+.welcome p{font-size:14px;line-height:1.7;color:#c0d2c4}
+.bubble{font-size:14px;line-height:1.75;padding:14px 16px;border-radius:16px}
+.bubble.user{background:linear-gradient(135deg,#286641,#1f5234);border:1px solid #39794c}
+.bubble.assistant{background:#18271e;border:1px solid #304936;color:#e5f0e7}
+.composer{padding:16px;background:rgba(10,19,13,.8)}
+.input-row textarea{min-height:52px;padding:14px 15px;border-radius:14px;background:#0b150f;border-color:#385340;font-size:14px;line-height:1.5}
+.input-row textarea::placeholder{color:#7f9685}
+.input-row textarea:focus{border-color:#77e69a;box-shadow:0 0 0 3px #63d98920}
+.send{height:52px;padding:0 21px;border-radius:14px;background:linear-gradient(135deg,#8af0ad,#5bd888);box-shadow:0 5px 18px #45c87525;font-size:13px;transition:transform .15s,filter .15s}
+.send:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.hint{font-size:11px;line-height:1.5;margin-top:10px}
+.side{gap:14px}
+.side .panel{padding:19px}
+.side h2{font-size:14px;letter-spacing:.01em;margin-bottom:15px}
+.helper-icon{width:43px;height:43px;border-radius:14px}
+.helper-btn{padding:11px;border-radius:12px;transition:background .15s,border-color .15s}
+.metrics{gap:10px}
+.metric{padding:13px;border-radius:13px;background:rgba(8,17,12,.55)}
+.metric b{font-size:18px;letter-spacing:-.02em}
+.quick button{padding:12px 13px;border-radius:12px;line-height:1.45;transition:background .15s,border-color .15s,transform .15s}
+.quick button:hover{background:#1b3021;transform:translateX(2px)}
+footer{padding-top:22px}
+@media(max-width:780px){.wrap{width:calc(100% - 28px);padding-top:18px}.grid{grid-template-columns:1fr}.chat-panel{min-height:600px}.side{grid-template-columns:1fr 1fr}.side .panel:first-child{grid-column:1/-1}}
+@media(max-width:520px){.wrap{width:calc(100% - 20px);padding-top:13px}header{margin-bottom:22px}.brand{font-size:16px}.status{padding:6px 9px}.intro h1{font-size:29px}.intro p{font-size:13px}.chat-panel{min-height:570px}.messages{padding:14px;max-height:440px}.bubble{max-width:98%;padding:12px 13px}.panel-head{padding:14px 15px}.composer{padding:11px}.send{padding:0 14px}.side{grid-template-columns:1fr}.side .panel:first-child{grid-column:auto}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
 </style>
 </head>
 <body>
@@ -27,14 +79,14 @@ footer{text-align:center;color:#718477;font-size:11px;padding-top:19px}
  <div class="status"><i class="dot" id="apiDot"></i><span id="apiStatus">Подключаем ИИ…</span></div>
 </header>
 <section class="intro">
- <h1>Чем помочь с компьютером?</h1>
- <p>Задавай вопросы обычным языком. Помогу разобраться с Windows, ошибками и производительностью.</p>
+ <h1>Разберёмся с твоим компьютером</h1>
+ <p>Понятные ответы без сложных терминов. Подскажу, что делать, и проведу по шагам.</p>
 </section>
 <main class="grid">
  <section class="panel chat-panel">
   <div class="panel-head"><h2>Чат с AI-помощником</h2><span class="tag">PC BOOSTER AI</span></div>
   <div class="messages" id="messages" aria-live="polite">
-   <div class="welcome"><strong>Привет! Я PC Booster AI 👋</strong><p>Могу подсказать, как ускорить Windows, освободить место, разобраться с ошибками и безопасно настроить компьютер. Напиши, что случилось.</p></div>
+   <div class="welcome"><strong>Привет! Я твой помощник по Windows 👋</strong><p>Опиши проблему своими словами. Я объясню простым языком, предложу безопасное решение и распишу действия по шагам. Не нужно знать технические термины.</p></div>
   </div>
   <div class="typing" id="typing" hidden>ИИ готовит ответ…</div>
   <form class="composer" id="chatForm">
