@@ -217,7 +217,7 @@ public sealed class MainForm : Form
     private Panel Card(string title,string subtitle)
     {
         var p=new FlowLayoutPanel { FlowDirection=FlowDirection.TopDown, WrapContents=false, AutoSize=true, AutoSizeMode=AutoSizeMode.GrowAndShrink, Width=820, Padding=new Padding(20), Margin=new Padding(0,0,0,16), BackColor=Color.FromArgb(20,31,24), Tag="card" };
-        p.ControlAdded += (_,e) => FitCardControl(p,e.Control);
+        p.ControlAdded += (_,e) => { if(e.Control is Control child) FitCardControl(p,child); };
         p.SizeChanged += (_,_) => { foreach(Control child in p.Controls) FitCardControl(p,child); };
         var h=new Label { Text=title, AutoSize=true, Font=new Font("Segoe UI",14,FontStyle.Bold), Margin=new Padding(0,0,0,5) };
         p.Controls.Add(h);
@@ -443,7 +443,7 @@ public sealed class MainForm : Form
                         throw new Exception("Проверка собранного файла не пройдена.");
                     ready = true;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     updateStatusLabel.Text = "Патч не подошёл, загружаю полный файл...";
                     try { if (File.Exists(newExePath)) File.Delete(newExePath); } catch { }
