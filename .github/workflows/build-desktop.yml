@@ -86,7 +86,8 @@ jobs:
               $deltaHash = [string]$oldManifest.deltaSha256
               Write-Host ("Preserving existing delta patch: {0}" -f $deltaFile)
             }
-            elseif ($deltaFrom -match '^\d+\.\d+\.\d+              & ".\xdelta3.exe" -e -s $oldExe "PC-Booster.exe" $deltaFile
+            elseif ($deltaFrom -match '^\d+\.\d+\.\d+$' -and $deltaFrom -ne $version) {
+              $deltaFile = "PC-Booster-$deltaFrom-to-$version.xdelta"
               if ($LASTEXITCODE -ne 0) { throw "Could not create delta patch" }
               $deltaSize = (Get-Item $deltaFile).Length
               if ($deltaSize -ge $size) {
