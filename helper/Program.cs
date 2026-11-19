@@ -62,9 +62,9 @@ while (listener.IsListening)
                 return;
             }
 
-            if (!CryptographicOperations.FixedTimeEquals(
-                System.Text.Encoding.UTF8.GetBytes(req.Headers["X-PC-Booster-Token"] ?? ""),
-                System.Text.Encoding.UTF8.GetBytes(token)))
+            var suppliedTokenHash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(req.Headers["X-PC-Booster-Token"] ?? ""));
+            var expectedTokenHash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token));
+            if (!CryptographicOperations.FixedTimeEquals(suppliedTokenHash, expectedTokenHash))
             {
                 res.StatusCode = 401;
                 await WriteJson(res, new { error = "Invalid pairing token" });
