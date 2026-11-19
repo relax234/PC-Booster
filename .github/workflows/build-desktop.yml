@@ -5,6 +5,7 @@ on:
     paths:
       - "desktop/**"
       - "installer/**"
+      - "bootstrapper/**"
       - ".github/workflows/build-desktop.yml"
   workflow_dispatch:
 concurrency:
@@ -17,6 +18,16 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Configure MSVC compiler
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: Build lightweight native downloader
+        shell: pwsh
+        run: |
+          cl.exe /nologo /O1 /MT /EHsc /DUNICODE /D_UNICODE /Fe:PC-Booster-Download.exe bootstrapper/PC-Booster-Bootstrapper.cpp /link /SUBSYSTEM:WINDOWS
+          if ($LASTEXITCODE -ne 0 -or !(Test-Path "PC-Booster-Download.exe")) { throw "Bootstrapper compilation failed" }
+          $bootstrapSize = (Get-Item "PC-Booster-Download.exe").Length
+          Write-Host ("Bootstrapper size: {0:N2} MB" -f ($bootstrapSize / 1MB))
+          if ($bootstrapSize -ge 10MB) { throw "Bootstrapper must be smaller than 10 MB" }
       - name: Save previous release for delta generation
         shell: pwsh
         run: |
@@ -98,7 +109,13 @@ jobs:
           if (!(Test-Path $iscc)) { $iscc = (Get-Command ISCC.exe -ErrorAction Stop).Source }
           & $iscc "/DAppVersion=$((([xml](Get-Content desktop/PCBooster.Desktop.csproj)).Project.PropertyGroup.Version))" "installer/PC-Booster.iss"
           if ($LASTEXITCODE -ne 0 -or !(Test-Path "PC-Booster-Setup.exe")) { throw "Windows installer build failed" }
-          Write-Host ("Installer size: {0:N2} MB" -f ((Get-Item "PC-Booster-Setup.exe").Length / 1MB))
+          $setupSize = (Get-Item "PC-Booster-Setup.exe").Length
+          $setupHash = (Get-FileHash "PC-Booster-Setup.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host ("Installer size: {0:N2} MB" -f ($setupSize / 1MB))
+          $manifest = Get-Content "latest.json" -Raw | ConvertFrom-Json
+          $manifest | Add-Member -NotePropertyName installerSize -NotePropertyValue $setupSize -Force
+          $manifest | Add-Member -NotePropertyName installerSha256 -NotePropertyValue $setupHash -Force
+          $manifest | ConvertTo-Json -Compress | Set-Content -Path "latest.json" -Encoding utf8NoBOM
       - name: Publish installer, EXE and manifest to website
         shell: pwsh
         run: |
@@ -106,6 +123,7 @@ jobs:
           New-Item -ItemType Directory -Path $backup -Force | Out-Null
           Copy-Item "PC-Booster.exe" $backup -Force
           Copy-Item "PC-Booster-Setup.exe" $backup -Force
+          Copy-Item "PC-Booster-Download.exe" $backup -Force
           Copy-Item "latest.json" $backup -Force
           $manifest = Get-Content "latest.json" -Raw | ConvertFrom-Json
           if ($manifest.deltaFile) { Copy-Item $manifest.deltaFile $backup -Force }
@@ -118,8 +136,9 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "Could not reset to latest main" }
             Copy-Item (Join-Path $backup "PC-Booster.exe") "PC-Booster.exe" -Force
             Copy-Item (Join-Path $backup "PC-Booster-Setup.exe") "PC-Booster-Setup.exe" -Force
+            Copy-Item (Join-Path $backup "PC-Booster-Download.exe") "PC-Booster-Download.exe" -Force
             Copy-Item (Join-Path $backup "latest.json") "latest.json" -Force
-            git add PC-Booster.exe PC-Booster-Setup.exe latest.json
+            git add PC-Booster.exe PC-Booster-Setup.exe PC-Booster-Download.exe latest.json
             if ($manifest.deltaFile) {
               Copy-Item (Join-Path $backup $manifest.deltaFile) $manifest.deltaFile -Force
               git add $manifest.deltaFile
@@ -142,14 +161,14 @@ jobs:
           $version = $project.Project.PropertyGroup.Version
           $tag = "desktop-v$version"
           $title = "PC Booster Desktop $version"
-          $notes = "Установщик Windows 10/11 x64 с ярлыками и удалением через Windows. Встроенное дифференциальное обновление: загружаются только изменения, если патч доступен; иначе используется полный файл. .NET включён."
+          $notes = "Небольшой загрузчик Windows x64 (до 10 МБ) скачивает и проверяет установщик. Приложение устанавливается автономно с .NET; встроенное автообновление загружает только изменения, если доступен delta-патч."
           gh release view $tag --repo ${{ github.repository }} *> $null
           if ($LASTEXITCODE -ne 0) {
             gh release create $tag --repo ${{ github.repository }} --title $title --notes $notes
             if ($LASTEXITCODE -ne 0) { throw "Could not create GitHub release" }
           }
-          gh release upload $tag "PC-Booster-Setup.exe" "PC-Booster.exe" --repo ${{ github.repository }} --clobber
-          if ($LASTEXITCODE -ne 0) { throw "Could not upload installer and EXE" }
+          gh release upload $tag "PC-Booster-Download.exe" "PC-Booster-Setup.exe" "PC-Booster.exe" --repo ${{ github.repository }} --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Could not upload bootstrapper, installer and EXE" }
           $manifest = Get-Content "latest.json" -Raw | ConvertFrom-Json
           if ($manifest.deltaFile) {
             gh release upload $tag $manifest.deltaFile --repo ${{ github.repository }} --clobber
