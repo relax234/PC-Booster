@@ -215,6 +215,8 @@ fn tweak_settings(id: &str) -> Option<Vec<(&'static str, &'static str, &'static 
     let visual = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects";
     let game_store = "System\\GameConfigStore";
     let game_dvr = "Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR";
+    let mouse = "Control Panel\\Mouse";
+    let desktop = "Control Panel\\Desktop";
     match id {
         "show_file_extensions" => Some(vec![(explorer, "HideFileExt", "dword", "0")]),
         "show_hidden_files" => Some(vec![(explorer, "Hidden", "dword", "1")]),
