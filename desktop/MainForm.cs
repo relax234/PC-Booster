@@ -804,11 +804,11 @@ public sealed class MainForm : Form
                 "PC-Booster-updater-" + Guid.NewGuid().ToString("N") + ".ps1");
             string Ps(string value) => "'" + value.Replace("'", "''") + "'";
             var script = "$ErrorActionPreference = 'Stop'\n" +
-                "$target = " + Ps(targetPath) + "\n" +
-                "$source = " + Ps(readyPath!) + "\n" +
-                "$processId = " + Environment.ProcessId + "\n" +
                 "try {\n" +
-                "  while (Get-Process -Id $processId -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 400 }\n" +
+                "  $target = " + Ps(targetPath) + "\n" +
+                "  $source = " + Ps(readyPath!) + "\n" +
+                "  $appProcessId = " + Environment.ProcessId + "\n" +
+                "  while (Get-Process -Id $appProcessId -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 400 }\n" +
                 "  $staged = $target + '.new'\n" +
                 "  $backup = $target + '.previous'\n" +
                 "  Copy-Item -LiteralPath $source -Destination $staged -Force\n" +
