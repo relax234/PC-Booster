@@ -993,7 +993,7 @@ public sealed class MainForm : Form
         if(c is DataGridView g){g.BackgroundColor=panel;g.DefaultCellStyle.BackColor=panel;g.DefaultCellStyle.ForeColor=text;g.ColumnHeadersDefaultCellStyle.BackColor=Accent();g.ColumnHeadersDefaultCellStyle.ForeColor=Color.Black;g.EnableHeadersVisualStyles=false;}
         foreach(Control child in c.Controls) PaintTree(child,bg,panel,text,muted);
     }
-    private Color Accent()=>light?Color.FromArgb(27,139,219):Color.FromArgb(105,233,155);
+    private Color Accent()=>light?Color.FromArgb(24,126,205):Color.FromArgb(62,177,255);
     private Color PanelColor()=>light?Color.White:Color.FromArgb(13,29,48);
     private Color TextColor()=>light?Color.FromArgb(18,48,75):Color.FromArgb(237,246,239);
     private static string FormatBytes(long n){string[] u={"Б","КБ","МБ","ГБ","ТБ"};double v=n;int i=0;while(v>=1024&&i<u.Length-1){v/=1024;i++;}return $"{v:0.0} {u[i]}";}
