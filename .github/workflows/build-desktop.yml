@@ -60,12 +60,12 @@ jobs:
         run: |
           [xml]$project = Get-Content "desktop/PCBooster.Desktop.csproj"
           $version = $project.Project.PropertyGroup.Version
-          $publish = "desktop/bin/Release/net10.0-windows/win-x64/publish"
-          $source = Join-Path $publish "PC Booster.exe"
-          if (!(Test-Path $source)) { throw "Publish output not found: $source" }
+          $sourceFile = Get-ChildItem "desktop/bin" -Filter "PC Booster.exe" -Recurse | Where-Object { $_.Directory.Name -eq "publish" } | Select-Object -First 1
+          if (!$sourceFile) { throw "Published PC Booster.exe was not found under desktop/bin" }
+          $publish = $sourceFile.Directory.FullName
           $files = @(Get-ChildItem $publish -File)
           if ($files.Count -ne 1 -or $files[0].Name -ne "PC Booster.exe") { throw "Publish folder must contain exactly one EXE; found: $($files.Name -join ', ')" }
-          Copy-Item $source "PC-Booster.exe" -Force
+          Copy-Item $sourceFile.FullName "PC-Booster.exe" -Force
           $size = (Get-Item "PC-Booster.exe").Length
           Write-Host ("Self-contained EXE size: {0:N2} MB" -f ($size / 1MB))
           if ($size -ge 180MB) { throw "Unexpectedly large EXE: $size bytes" }
@@ -157,8 +157,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          [xml]$project = Get-Content "desktop/PCBooster.Desktop.csproj"
-          $version = $project.Project.PropertyGroup.Version
+          $publishedManifest = Get-Content "latest.json" -Raw | ConvertFrom-Json
+          $version = [string]$publishedManifest.version
           $tag = "desktop-v$version"
           $title = "PC Booster Desktop $version"
           $notes = "Небольшой загрузчик Windows x64 (до 10 МБ) скачивает и проверяет установщик. Приложение устанавливается автономно с .NET; встроенное автообновление загружает только изменения, если доступен delta-патч."
