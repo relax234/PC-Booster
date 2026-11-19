@@ -9,12 +9,12 @@ on:
   workflow_dispatch:
 concurrency:
   group: pc-booster-desktop-build
-  cancel-in-progress: true
+  cancel-in-progress: false
 permissions:
   contents: write
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
       - name: Save previous release for delta generation
