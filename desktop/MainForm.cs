@@ -33,6 +33,7 @@ public sealed class MainForm : Form
     private Label updateStatusLabel = new();
     private Button installUpdateButton = new();
     private UpdateManifest? availableUpdate;
+    private string? pendingUpdatePath;
     private bool updateBusy;
     private readonly Dictionary<string,List<RegValue>> rollback = new();
     private (ulong idle, ulong kernel, ulong user)? previousCpuSample;
@@ -62,7 +63,13 @@ public sealed class MainForm : Form
         _ = RefreshStatsAsync();
         refreshTimer.Tick += async (_,_) => await RefreshStatsAsync();
         refreshTimer.Start();
-        FormClosed += (_,_) => { refreshTimer.Stop(); http.Dispose(); };
+        FormClosed += (_,_) =>
+        {
+            refreshTimer.Stop();
+            http.Dispose();
+            if (pendingUpdatePath != null)
+                try { if (File.Exists(pendingUpdatePath)) File.Delete(pendingUpdatePath); } catch { }
+        };
         ApplyTheme();
     }
 
@@ -512,6 +519,8 @@ public sealed class MainForm : Form
                 var downloadSize = canDelta ? manifest.deltaSize : manifest.size;
                 updateStatusLabel.Text = "Доступна версия " + manifest.version + ". Размер загрузки: " + FormatBytes(downloadSize) +
                     (canDelta ? " (обновление только изменений)." : " (полный файл).");
+                installUpdateButton.Text = pendingUpdatePath != null && File.Exists(pendingUpdatePath)
+                    ? "ОБНОВИТЬ СЕЙЧАС" : "СКАЧАТЬ И УСТАНОВИТЬ";
                 installUpdateButton.Enabled = true;
             }
         }
@@ -522,74 +531,178 @@ public sealed class MainForm : Form
     private async void InstallUpdate()
     {
         if (updateBusy || availableUpdate == null) return;
+
+        var manifest = availableUpdate;
+        if (manifest.size <= 0 || manifest.size > 200L * 1024 * 1024 ||
+            manifest.sha256.Length != 64)
+        {
+            updateStatusLabel.Text = "Данные обновления не прошли проверку безопасности.";
+            return;
+        }
+
         updateBusy = true;
         installUpdateButton.Enabled = false;
-        updateStatusLabel.Text = "Подготавливаю обновление...";
-        string? downloadedPath = null;
+        string? temporaryDownloadPath = null;
         string? patchPath = null;
+        bool retainDownload = false;
+
         try
         {
-            var manifest = availableUpdate;
-            if (manifest.size <= 0 || manifest.size > 200L * 1024 * 1024 || manifest.sha256.Length != 64)
-                throw new Exception("Данные обновления не прошли проверку безопасности.");
             var targetPath = Application.ExecutablePath;
-            var newExePath = Path.Combine(Path.GetTempPath(), "PC-Booster-new-" + Guid.NewGuid().ToString("N") + ".exe");
-            var canDelta = manifest.deltaFromVersion == CurrentVersion && manifest.deltaSize > 0 &&
-                manifest.deltaSize <= manifest.size && manifest.deltaSha256.Length == 64 &&
-                File.Exists(Path.Combine(AppContext.BaseDirectory, "xdelta3.exe"));
-            var ready = false;
-
-            if (canDelta)
+            var readyPath = pendingUpdatePath;
+            if (string.IsNullOrWhiteSpace(readyPath) || !File.Exists(readyPath))
             {
+                pendingUpdatePath = null;
+                readyPath = null;
+            }
+
+            if (readyPath == null)
+            {
+                var newExePath = Path.Combine(Path.GetTempPath(),
+                    "PC-Booster-new-" + Guid.NewGuid().ToString("N") + ".exe");
+                temporaryDownloadPath = newExePath;
+
+                using var cancelSource = new CancellationTokenSource();
+                using var progress = new UpdateProgressForm(manifest.version);
+                progress.CancelRequested += () => cancelSource.Cancel();
+
+                Enabled = false;
+                progress.Show(this);
+                progress.Activate();
+
                 try
                 {
-                    updateStatusLabel.Text = "Скачиваю компактное обновление...";
-                    var patchBytes = await http.GetByteArrayAsync("https://pc-booster-ai-api.onrender.com/api/updates/download?from=" + Uri.EscapeDataString(CurrentVersion));
-                    if (patchBytes.LongLength != manifest.deltaSize) throw new Exception("Размер патча не совпадает.");
-                    var patchHash = Convert.ToHexString(SHA256.HashData(patchBytes)).ToLowerInvariant();
-                    if (!CryptographicOperations.FixedTimeEquals(System.Text.Encoding.ASCII.GetBytes(patchHash), System.Text.Encoding.ASCII.GetBytes(manifest.deltaSha256.ToLowerInvariant())))
-                        throw new Exception("Контрольная сумма патча не совпала.");
-                    patchPath = Path.Combine(Path.GetTempPath(), "PC-Booster-patch-" + Guid.NewGuid().ToString("N") + ".xdelta");
-                    await File.WriteAllBytesAsync(patchPath, patchBytes);
-                    updateStatusLabel.Text = "Применяю изменения...";
-                    var patcher = Path.Combine(AppContext.BaseDirectory, "xdelta3.exe");
-                    var psi = new ProcessStartInfo { FileName = patcher, UseShellExecute = false, CreateNoWindow = true };
-                    psi.ArgumentList.Add("-d"); psi.ArgumentList.Add("-s"); psi.ArgumentList.Add(targetPath);
-                    psi.ArgumentList.Add(patchPath); psi.ArgumentList.Add(newExePath);
-                    using var patchProcess = Process.Start(psi) ?? throw new Exception("Не удалось запустить модуль обновления.");
-                    await patchProcess.WaitForExitAsync();
-                    if (patchProcess.ExitCode != 0 || !File.Exists(newExePath)) throw new Exception("Не удалось применить патч.");
-                    var newHash = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(newExePath))).ToLowerInvariant();
-                    if (!CryptographicOperations.FixedTimeEquals(System.Text.Encoding.ASCII.GetBytes(newHash), System.Text.Encoding.ASCII.GetBytes(manifest.sha256.ToLowerInvariant())))
-                        throw new Exception("Проверка собранного файла не пройдена.");
-                    ready = true;
+                    var canDelta = manifest.deltaFromVersion == CurrentVersion &&
+                        manifest.deltaSize > 0 && manifest.deltaSize < manifest.size &&
+                        manifest.deltaSha256.Length == 64 &&
+                        File.Exists(Path.Combine(AppContext.BaseDirectory, "xdelta3.exe"));
+
+                    var ready = false;
+                    if (canDelta)
+                    {
+                        try
+                        {
+                            patchPath = Path.Combine(Path.GetTempPath(),
+                                "PC-Booster-patch-" + Guid.NewGuid().ToString("N") + ".xdelta");
+                            progress.SetStage("Скачиваю небольшое обновление...");
+                            await DownloadUpdateFileAsync(
+                                "https://pc-booster-ai-api.onrender.com/api/updates/download?from=" +
+                                Uri.EscapeDataString(CurrentVersion),
+                                patchPath, manifest.deltaSize, progress, cancelSource.Token);
+
+                            var patchHash = await ComputeFileSha256Async(patchPath, cancelSource.Token);
+                            if (!string.Equals(patchHash, manifest.deltaSha256, StringComparison.OrdinalIgnoreCase))
+                                throw new InvalidDataException("Контрольная сумма патча не совпала.");
+
+                            progress.SetStage("Применяю изменения и проверяю файл...");
+                            var patcher = Path.Combine(AppContext.BaseDirectory, "xdelta3.exe");
+                            var psi = new ProcessStartInfo
+                            {
+                                FileName = patcher,
+                                UseShellExecute = false,
+                                CreateNoWindow = true
+                            };
+                            psi.ArgumentList.Add("-d");
+                            psi.ArgumentList.Add("-s");
+                            psi.ArgumentList.Add(targetPath);
+                            psi.ArgumentList.Add(patchPath);
+                            psi.ArgumentList.Add(newExePath);
+
+                            using var patchProcess = Process.Start(psi)
+                                ?? throw new Exception("Не удалось запустить модуль обновления.");
+                            try
+                            {
+                                await patchProcess.WaitForExitAsync(cancelSource.Token);
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                try { if (!patchProcess.HasExited) patchProcess.Kill(entireProcessTree: true); } catch { }
+                                throw;
+                            }
+
+                            if (patchProcess.ExitCode != 0 || !File.Exists(newExePath))
+                                throw new InvalidDataException("Не удалось применить компактное обновление.");
+
+                            var assembledHash = await ComputeFileSha256Async(newExePath, cancelSource.Token);
+                            if (!string.Equals(assembledHash, manifest.sha256, StringComparison.OrdinalIgnoreCase))
+                                throw new InvalidDataException("Проверка собранного файла не пройдена.");
+
+                            ready = true;
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            throw;
+                        }
+                        catch
+                        {
+                            try { if (File.Exists(newExePath)) File.Delete(newExePath); } catch { }
+                            try { if (patchPath != null && File.Exists(patchPath)) File.Delete(patchPath); } catch { }
+                            patchPath = null;
+                            progress.SetStage("Компактный патч не подошёл. Перехожу на полную загрузку...");
+                        }
+                    }
+
+                    if (!ready)
+                    {
+                        progress.SetStage("Скачиваю полную версию приложения...");
+                        await DownloadUpdateFileAsync(
+                            "https://pc-booster-ai-api.onrender.com/api/updates/download",
+                            newExePath, manifest.size, progress, cancelSource.Token);
+
+                        var fullHash = await ComputeFileSha256Async(newExePath, cancelSource.Token);
+                        if (!string.Equals(fullHash, manifest.sha256, StringComparison.OrdinalIgnoreCase))
+                            throw new InvalidDataException("Контрольная сумма обновления не совпала.");
+                    }
+
+                    readyPath = newExePath;
+                    pendingUpdatePath = newExePath;
+                    retainDownload = true;
+                    progress.SetCompleted();
                 }
-                catch
+                finally
                 {
-                    updateStatusLabel.Text = "Патч не подошёл, загружаю полный файл...";
-                    try { if (File.Exists(newExePath)) File.Delete(newExePath); } catch { }
-                    try { if (patchPath != null && File.Exists(patchPath)) File.Delete(patchPath); } catch { }
-                    patchPath = null;
+                    if (!progress.IsDisposed) progress.Close();
+                    if (!IsDisposed && !Disposing)
+                    {
+                        Enabled = true;
+                        Activate();
+                    }
                 }
             }
-
-            if (!ready)
+            else
             {
-                updateStatusLabel.Text = "Скачиваю полное обновление...";
-                var bytes = await http.GetByteArrayAsync("https://pc-booster-ai-api.onrender.com/api/updates/download");
-                if (bytes.LongLength != manifest.size) throw new Exception("Размер загруженного файла не совпадает с данными сервера.");
-                var actualHash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
-                if (!CryptographicOperations.FixedTimeEquals(System.Text.Encoding.ASCII.GetBytes(actualHash), System.Text.Encoding.ASCII.GetBytes(manifest.sha256.ToLowerInvariant())))
-                    throw new Exception("Контрольная сумма обновления не совпала.");
-                await File.WriteAllBytesAsync(newExePath, bytes);
+                readyPath = pendingUpdatePath;
+                retainDownload = true;
             }
 
-            downloadedPath = newExePath;
-            var scriptPath = Path.Combine(Path.GetTempPath(), "PC-Booster-updater-" + Guid.NewGuid().ToString("N") + ".ps1");
+            var downloadSize = manifest.deltaFromVersion == CurrentVersion &&
+                manifest.deltaSize > 0 && File.Exists(Path.Combine(AppContext.BaseDirectory, "xdelta3.exe"))
+                ? manifest.deltaSize : manifest.size;
+
+            var choice = MessageBox.Show(
+                this,
+                "Обновление PC Booster " + manifest.version + " скачано и проверено.\n\n" +
+                "Размер загрузки: " + FormatBytes(downloadSize) + "\n\n" +
+                "Обновить приложение и перезапустить его сейчас? Текущая программа закроется только после твоего подтверждения.",
+                "PC Booster — обновление готово",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question,
+                MessageBoxDefaultButton.Button1);
+
+            if (choice != DialogResult.Yes)
+            {
+                updateStatusLabel.Text = "Обновление скачано и проверено. Нажми «ОБНОВИТЬ СЕЙЧАС», когда будешь готов.";
+                installUpdateButton.Text = "ОБНОВИТЬ СЕЙЧАС";
+                return;
+            }
+
+            updateStatusLabel.Text = "Запускаю установку обновления...";
+            var scriptPath = Path.Combine(Path.GetTempPath(),
+                "PC-Booster-updater-" + Guid.NewGuid().ToString("N") + ".ps1");
             string Ps(string value) => "'" + value.Replace("'", "''") + "'";
             var script = "$ErrorActionPreference = 'Stop'\n" +
                 "$target = " + Ps(targetPath) + "\n" +
-                "$source = " + Ps(downloadedPath) + "\n" +
+                "$source = " + Ps(readyPath!) + "\n" +
                 "$processId = " + Environment.ProcessId + "\n" +
                 "try {\n" +
                 "  while (Get-Process -Id $processId -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 400 }\n" +
@@ -599,20 +712,102 @@ public sealed class MainForm : Form
                 "  Start-Sleep -Seconds 2\n" +
                 "  Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue\n" +
                 "} catch { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'PC Booster — ошибка обновления') | Out-Null }";
+
             await File.WriteAllTextAsync(scriptPath, script, new System.Text.UTF8Encoding(false));
-            Process.Start(new ProcessStartInfo { FileName = "powershell.exe", Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"" + scriptPath + "\"", UseShellExecute = true, Verb = "runas" });
-            updateStatusLabel.Text = "Обновление подготовлено. Подтверди запрос Windows, затем программа перезапустится.";
-            await Task.Delay(500);
+            var updater = Process.Start(new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"" + scriptPath + "\"",
+                UseShellExecute = true,
+                Verb = "runas"
+            });
+            if (updater == null) throw new Exception("Не удалось запустить установщик обновления.");
+
+            pendingUpdatePath = null;
+            temporaryDownloadPath = null;
+            retainDownload = false;
+            await Task.Delay(300);
             Application.Exit();
+        }
+        catch (OperationCanceledException)
+        {
+            updateStatusLabel.Text = "Загрузка обновления отменена.";
+            if (pendingUpdatePath == temporaryDownloadPath) pendingUpdatePath = null;
         }
         catch (Exception ex)
         {
-            if (downloadedPath != null) try { File.Delete(downloadedPath); } catch { }
-            updateStatusLabel.Text = "Не удалось установить обновление: " + ex.Message;
-            installUpdateButton.Enabled = availableUpdate != null;
-            updateBusy = false;
+            updateStatusLabel.Text = "Не удалось подготовить обновление: " + ex.Message;
+            installUpdateButton.Text = pendingUpdatePath != null && File.Exists(pendingUpdatePath)
+                ? "ОБНОВИТЬ СЕЙЧАС" : "СКАЧАТЬ И УСТАНОВИТЬ";
         }
-        finally { if (patchPath != null) try { File.Delete(patchPath); } catch { } }
+        finally
+        {
+            if (patchPath != null) try { File.Delete(patchPath); } catch { }
+            if (!retainDownload && temporaryDownloadPath != null)
+                try { if (File.Exists(temporaryDownloadPath)) File.Delete(temporaryDownloadPath); } catch { }
+
+            updateBusy = false;
+            if (!IsDisposed && !Disposing)
+            {
+                installUpdateButton.Enabled = availableUpdate != null;
+            }
+        }
+    }
+
+    private async Task DownloadUpdateFileAsync(
+        string url,
+        string destinationPath,
+        long expectedSize,
+        UpdateProgressForm progress,
+        CancellationToken cancellationToken)
+    {
+        using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var contentLength = response.Content.Headers.ContentLength;
+        if (contentLength.HasValue && contentLength.Value != expectedSize)
+            throw new InvalidDataException("Размер загрузки с сервера не совпадает с манифестом.");
+
+        await using var input = await response.Content.ReadAsStreamAsync(cancellationToken);
+        await using var output = new FileStream(
+            destinationPath, FileMode.Create, FileAccess.Write, FileShare.None,
+            64 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan);
+
+        var buffer = new byte[64 * 1024];
+        long received = 0;
+        var clock = Stopwatch.StartNew();
+        progress.ReportProgress(0, expectedSize);
+
+        while (true)
+        {
+            var count = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken);
+            if (count == 0) break;
+
+            await output.WriteAsync(buffer.AsMemory(0, count), cancellationToken);
+            received += count;
+
+            if (clock.ElapsedMilliseconds >= 90)
+            {
+                progress.ReportProgress(received, expectedSize);
+                clock.Restart();
+            }
+        }
+
+        await output.FlushAsync(cancellationToken);
+        if (received != expectedSize)
+            throw new InvalidDataException("Загрузка завершилась не полностью: получено " +
+                FormatBytes(received) + " из " + FormatBytes(expectedSize) + ".");
+
+        progress.ReportProgress(received, expectedSize);
+    }
+
+    private static async Task<string> ComputeFileSha256Async(string path, CancellationToken cancellationToken)
+    {
+        await using var stream = new FileStream(
+            path, FileMode.Open, FileAccess.Read, FileShare.Read,
+            128 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan);
+        var hash = await SHA256.HashDataAsync(stream, cancellationToken);
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
     private sealed class UpdateManifest
@@ -626,6 +821,126 @@ public sealed class MainForm : Form
         public string deltaFile { get; set; } = "";
         public long deltaSize { get; set; }
         public string deltaSha256 { get; set; } = "";
+    }
+
+    private sealed class UpdateProgressForm : Form
+    {
+        private readonly Label heading = new();
+        private readonly Label stage = new();
+        private readonly Label amount = new();
+        private readonly Label percent = new();
+        private readonly ProgressBar progressBar = new();
+        private readonly Button cancelButton = new();
+
+        public event Action? CancelRequested;
+
+        public UpdateProgressForm(string version)
+        {
+            Text = "Обновление PC Booster";
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            StartPosition = FormStartPosition.CenterParent;
+            ClientSize = new Size(520, 236);
+            MaximizeBox = false;
+            MinimizeBox = false;
+            ControlBox = false;
+            ShowInTaskbar = false;
+            BackColor = Color.FromArgb(13, 23, 17);
+            ForeColor = Color.FromArgb(237, 246, 239);
+            Font = new Font("Segoe UI", 9.5f);
+
+            var accent = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 5,
+                BackColor = Color.FromArgb(105, 220, 145)
+            };
+            heading.SetBounds(28, 24, 460, 30);
+            heading.Text = "Загружаю PC Booster " + version;
+            heading.Font = new Font("Segoe UI", 15, FontStyle.Bold);
+            heading.ForeColor = Color.FromArgb(237, 246, 239);
+
+            stage.SetBounds(30, 67, 458, 24);
+            stage.Text = "Подключаюсь к серверу обновлений...";
+            stage.ForeColor = Color.FromArgb(180, 199, 185);
+
+            progressBar.SetBounds(30, 106, 458, 16);
+            progressBar.Minimum = 0;
+            progressBar.Maximum = 1000;
+            progressBar.Style = ProgressBarStyle.Continuous;
+
+            amount.SetBounds(30, 136, 350, 24);
+            amount.Text = "Подготовка загрузки...";
+            amount.ForeColor = Color.FromArgb(180, 199, 185);
+
+            percent.SetBounds(400, 136, 88, 24);
+            percent.TextAlign = ContentAlignment.MiddleRight;
+            percent.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+            percent.ForeColor = Color.FromArgb(105, 233, 155);
+
+            cancelButton.SetBounds(358, 178, 130, 38);
+            cancelButton.Text = "Отменить";
+            cancelButton.FlatStyle = FlatStyle.Flat;
+            cancelButton.FlatAppearance.BorderColor = Color.FromArgb(64, 91, 71);
+            cancelButton.BackColor = Color.FromArgb(26, 43, 32);
+            cancelButton.ForeColor = Color.FromArgb(237, 246, 239);
+            cancelButton.Cursor = Cursors.Hand;
+            cancelButton.Click += (_, _) =>
+            {
+                cancelButton.Enabled = false;
+                cancelButton.Text = "Отмена...";
+                stage.Text = "Отменяю загрузку...";
+                CancelRequested?.Invoke();
+            };
+
+            Controls.Add(accent);
+            Controls.Add(heading);
+            Controls.Add(stage);
+            Controls.Add(progressBar);
+            Controls.Add(amount);
+            Controls.Add(percent);
+            Controls.Add(cancelButton);
+        }
+
+        public void SetStage(string text)
+        {
+            if (IsDisposed || !IsHandleCreated) return;
+            stage.Text = text;
+            percent.Text = "";
+            amount.Text = "";
+            progressBar.Style = ProgressBarStyle.Marquee;
+            progressBar.MarqueeAnimationSpeed = 24;
+        }
+
+        public void ReportProgress(long received, long total)
+        {
+            if (IsDisposed || !IsHandleCreated) return;
+            if (InvokeRequired)
+            {
+                BeginInvoke(new Action(() => ReportProgress(received, total)));
+                return;
+            }
+
+            progressBar.Style = ProgressBarStyle.Continuous;
+            progressBar.MarqueeAnimationSpeed = 0;
+            var ratio = total <= 0 ? 0 : Math.Clamp(received / (double)total, 0, 1);
+            progressBar.Value = (int)Math.Round(ratio * progressBar.Maximum);
+            var remaining = Math.Max(0, total - received);
+            amount.Text = FormatBytes(received) + " из " + FormatBytes(total) +
+                " · осталось " + FormatBytes(remaining);
+            percent.Text = (ratio * 100).ToString("0") + "%";
+        }
+
+        public void SetCompleted()
+        {
+            if (IsDisposed || !IsHandleCreated) return;
+            stage.Text = "Загрузка завершена. Файл проверен.";
+            progressBar.Style = ProgressBarStyle.Continuous;
+            progressBar.Value = progressBar.Maximum;
+            amount.Text = "Все необходимые файлы готовы к обновлению.";
+            percent.Text = "100%";
+            cancelButton.Text = "Готово";
+            cancelButton.Enabled = false;
+        }
     }
     private void ApplyTheme()
     {
