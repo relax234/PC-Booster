@@ -56,7 +56,7 @@ const server = http.createServer(async (req, res) => {
   }
   if (req.method === "GET" && (url.pathname === "/api/updates/latest" || url.pathname === "/api/updates/download")) {
     try {
-      const site = FRONTEND_ORIGIN.replace(/\\/+$/, "");
+      const site = FRONTEND_ORIGIN.replace(/\/+$/, "");
       const manifestResponse = await fetch(site + "/latest.json", { signal: AbortSignal.timeout(15000), cache: "no-store" });
       if (!manifestResponse.ok) throw new Error("Public update manifest unavailable");
       const manifest = await manifestResponse.json();
