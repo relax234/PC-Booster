@@ -5,7 +5,7 @@ const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "https://pc-booster-ai.on
 const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 12;
-const MAX_BODY = 8_000;
+const MAX_BODY = 24_000;
 const requests = new Map();
 
 function send(res, status, payload) {
@@ -13,7 +13,7 @@ function send(res, status, payload) {
   res.end(JSON.stringify(payload));
 }
 function allowedOrigin(origin) {
-  return !origin || origin === FRONTEND_ORIGIN || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  return !origin || origin === FRONTEND_ORIGIN || /^https?:\\/\\/(localhost|127\\.0\\.0\\.1)(:\\d+)?$/.test(origin);
 }
 function rateLimited(key) {
   const now = Date.now();
@@ -32,7 +32,7 @@ function getText(data) {
   }
   return "";
 }
-const instructions = `Ты — PC Booster AI, помощник по обслуживанию Windows 10/11. Отвечай по-русски, ясно и практично. Приоритет — безопасность, стабильность и прозрачность. Не обещай гарантированный прирост FPS. Не советуй отключать Microsoft Defender, Firewall, Windows Update, UAC, системные службы безопасности или удалять неизвестные системные файлы. Разделяй диагностику и изменение системы. Перед рискованными действиями требуй явного подтверждения и объясняй последствия. Сейчас ты только консультируешь: не утверждай, что уже просканировал или изменил компьютер.`;
+const instructions = `Ты — PC Booster AI, помощник по обслуживанию Windows 10/11. Отвечай по-русски, ясно, дружелюбно и практично. Веди нормальный диалог: учитывай предыдущие сообщения, не повторяй одни и те же вопросы и задавай только действительно нужные уточнения. Приоритет — безопасность, стабильность и прозрачность. Не обещай гарантированный прирост FPS. Не советуй отключать Microsoft Defender, Firewall, Windows Update, UAC, системные службы безопасности или удалять неизвестные системные файлы. Разделяй диагностику и изменение системы. Перед рискованными действиями требуй явного подтверждения и объясняй последствия. Сейчас ты только консультируешь: не утверждай, что уже просканировал или изменил компьютер.`;
 
 const server = http.createServer(async (req, res) => {
   const origin = req.headers.origin || "";
@@ -55,16 +55,25 @@ const server = http.createServer(async (req, res) => {
   try {
     for await (const chunk of req) {
       raw += chunk;
-      if (raw.length > MAX_BODY) return send(res, 413, { error: "Сообщение слишком большое." });
+      if (raw.length > MAX_BODY) return send(res, 413, { error: "История чата слишком большая. Начни новый диалог." });
     }
     const body = JSON.parse(raw || "{}");
     const message = typeof body.message === "string" ? body.message.trim() : "";
     if (!message || message.length > 2000) return send(res, 400, { error: "Напиши сообщение до 2000 символов." });
     if (!process.env.GROQ_API_KEY) return send(res, 503, { error: "Бесплатный AI ещё не подключён: добавь GROQ_API_KEY в настройках сервера Render." });
+    const supplied = Array.isArray(body.history) ? body.history.slice(-12) : [];
+    const history = supplied.map(item => {
+      if (!item || !["user", "assistant"].includes(item.role) || typeof item.content !== "string") return null;
+      const content = item.content.trim();
+      return content && content.length <= 2000 ? { role: item.role, content } : null;
+    }).filter(Boolean);
+    const input = history.length && history[history.length - 1].role === "user" && history[history.length - 1].content === message
+      ? history
+      : [...history, { role: "user", content: message }];
     const upstream = await fetch("https://api.groq.com/openai/v1/responses", {
       method: "POST",
       headers: { "authorization": `Bearer ${process.env.GROQ_API_KEY}`, "content-type": "application/json" },
-      body: JSON.stringify({ model: MODEL, instructions, input: message, max_output_tokens: 700, store: false }),
+      body: JSON.stringify({ model: MODEL, instructions, input, max_output_tokens: 900, store: false }),
       signal: AbortSignal.timeout(30_000)
     });
     const data = await upstream.json().catch(() => ({}));
