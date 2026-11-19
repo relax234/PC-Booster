@@ -281,8 +281,13 @@ fn restore_value(value: &OriginalValue) -> Result<(), String> {
         match value.kind.as_str() {
             "dword" => key.set_value(&value.name, &value.dword.ok_or_else(|| "Нет сохранённого DWORD".to_string())?)
                 .map_err(|e| format!("Не удалось восстановить DWORD: {e}")),
-            "string" => key.set_value(&value.name, &value.string.as_ref().ok_or_else(|| "Нет сохранённой строки".to_string())?)
-                .map_err(|e| format!("Не удалось восстановить строку: {e}")),
+            "string" => {
+                let restored = value.string.as_ref()
+                    .ok_or_else(|| "Нет сохранённой строки".to_string())?
+                    .clone();
+                key.set_value(&value.name, &restored)
+                    .map_err(|e| format!("Не удалось восстановить строку: {e}"))
+            },
             _ => Err("Неизвестный тип сохранённого параметра".into()),
         }
     }
