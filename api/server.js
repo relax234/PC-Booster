@@ -2,7 +2,7 @@ import http from "node:http";
 
 const PORT = Number(process.env.PORT || 3000);
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "https://pc-booster-ai.onrender.com";
-const MODEL = process.env.OPENAI_MODEL || "gpt-6.2-astra";
+const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 12;
 const MAX_BODY = 8_000;
@@ -46,7 +46,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") { res.writeHead(204); return res.end(); }
   const url = new URL(req.url, "http://localhost");
   if (req.method === "GET" && url.pathname === "/health") {
-    return send(res, 200, { ok: true, service: "pc-booster-ai-api", aiConfigured: Boolean(process.env.OPENAI_API_KEY) });
+    return send(res, 200, { ok: true, service: "pc-booster-ai-api", provider: "groq", aiConfigured: Boolean(process.env.GROQ_API_KEY), model: MODEL });
   }
   if (req.method !== "POST" || url.pathname !== "/api/assistant") return send(res, 404, { error: "Not found" });
   const ip = (req.headers["x-forwarded-for"] || "").toString().split(",")[0].trim() || req.socket.remoteAddress || "unknown";
@@ -60,17 +60,17 @@ const server = http.createServer(async (req, res) => {
     const body = JSON.parse(raw || "{}");
     const message = typeof body.message === "string" ? body.message.trim() : "";
     if (!message || message.length > 2000) return send(res, 400, { error: "Напиши сообщение до 2000 символов." });
-    if (!process.env.OPENAI_API_KEY) return send(res, 503, { error: "AI временно не подключён: на сервере ещё не задан API-ключ." });
-    const upstream = await fetch("https://api.openai.com/v1/responses", {
+    if (!process.env.GROQ_API_KEY) return send(res, 503, { error: "Бесплатный AI ещё не подключён: добавь GROQ_API_KEY в настройках сервера Render." });
+    const upstream = await fetch("https://api.groq.com/openai/v1/responses", {
       method: "POST",
-      headers: { "authorization": `Bearer ${process.env.OPENAI_API_KEY}`, "content-type": "application/json" },
+      headers: { "authorization": `Bearer ${process.env.GROQ_API_KEY}`, "content-type": "application/json" },
       body: JSON.stringify({ model: MODEL, instructions, input: message, max_output_tokens: 700, store: false }),
       signal: AbortSignal.timeout(30_000)
     });
     const data = await upstream.json().catch(() => ({}));
     if (!upstream.ok) {
-      console.error("OpenAI request failed:", upstream.status, data?.error?.type || "upstream_error");
-      return send(res, 502, { error: "AI-сервис не смог обработать запрос. Проверь настройки API на сервере." });
+      console.error("Groq request failed:", upstream.status, data?.error?.type || data?.error?.code || "upstream_error");
+      return send(res, 502, { error: "Бесплатный AI временно недоступен или достиг лимита. Попробуй немного позже." });
     }
     const answer = getText(data);
     if (!answer) return send(res, 502, { error: "AI вернул пустой ответ. Попробуй ещё раз." });
