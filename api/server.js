@@ -60,7 +60,7 @@ const server = http.createServer(async (req, res) => {
       const manifestResponse = await fetch(site + "/latest.json", { signal: AbortSignal.timeout(15000), cache: "no-store" });
       if (!manifestResponse.ok) throw new Error("Public update manifest unavailable");
       const manifest = await manifestResponse.json();
-      if (typeof manifest.version !== "string" || !/^\\d+\\.\\d+\\.\\d+$/.test(manifest.version) ||
+      if (typeof manifest.version !== "string" || !/^\d+\.\d+\.\d+$/.test(manifest.version) ||
           typeof manifest.sha256 !== "string" || !/^[a-f0-9]{64}$/i.test(manifest.sha256) ||
           !Number.isSafeInteger(manifest.size) || manifest.size <= 0 || manifest.size > 200 * 1024 * 1024)
         throw new Error("Invalid public update manifest");
