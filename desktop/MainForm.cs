@@ -185,8 +185,9 @@ public sealed class MainForm : Form
                 foreach(Control inner in card.Controls) FitCardControl(card,inner);
         }
     }
-    private void FitCardControl(FlowLayoutPanel card,Control child)
+    private void FitCardControl(FlowLayoutPanel card,Control? child)
     {
+        if(child is null) return;
         int width=Math.Max(280,card.ClientSize.Width-card.Padding.Horizontal-8);
         if(child is Label label)
         {
@@ -217,7 +218,7 @@ public sealed class MainForm : Form
     private Panel Card(string title,string subtitle)
     {
         var p=new FlowLayoutPanel { FlowDirection=FlowDirection.TopDown, WrapContents=false, AutoSize=true, AutoSizeMode=AutoSizeMode.GrowAndShrink, Width=820, Padding=new Padding(20), Margin=new Padding(0,0,0,16), BackColor=Color.FromArgb(20,31,24), Tag="card" };
-        p.ControlAdded += (_,e) => { if(e.Control is Control child) FitCardControl(p,child); };
+        p.ControlAdded += (_,e) => FitCardControl(p,e.Control);
         p.SizeChanged += (_,_) => { foreach(Control child in p.Controls) FitCardControl(p,child); };
         var h=new Label { Text=title, AutoSize=true, Font=new Font("Segoe UI",14,FontStyle.Bold), Margin=new Padding(0,0,0,5) };
         p.Controls.Add(h);
